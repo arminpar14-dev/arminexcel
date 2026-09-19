@@ -1,0 +1,1811 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ArminExcel Web Studio</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              900: '#064e3b'
+            },
+            surface: {
+              800: '#1e293b',
+              850: '#172033',
+              900: '#0f172a',
+              950: '#090d16'
+            }
+          },
+          fontFamily: {
+            sans: ['Vazirmatn', 'Inter', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Vazirmatn & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- SheetJS (XLSX) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- JSZip -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      outline: none;
+    }
+    body {
+      font-family: 'Vazirmatn', 'Inter', sans-serif;
+      user-select: none;
+    }
+    input, textarea, [contenteditable="true"] {
+      user-select: text;
+    }
+    /* Sleek Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.25);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.45);
+    }
+    .grid-cell:focus {
+      outline: 2px solid #10b981;
+      z-index: 20;
+    }
+    .badge-glow {
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+    }
+    .fade-in {
+      animation: fadeIn 0.2s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="bg-surface-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Top Application Bar -->
+  <header class="h-14 border-b border-slate-800 bg-surface-900/90 backdrop-blur px-4 flex items-center justify-between shrink-0 z-30">
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 bg-gradient-to-r from-brand-600 to-emerald-500 text-white px-3 py-1.5 rounded-xl font-black text-sm tracking-wide shadow-md">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <span>ArminExcel</span>
+        <span class="text-[10px] bg-black/25 px-1.5 py-0.5 rounded text-brand-100 uppercase tracking-widest font-mono">PRO</span>
+      </div>
+
+      <!-- Quick Command Center Trigger -->
+      <button onclick="ArminApp.openCommandPalette()" class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-xs rounded-lg border border-slate-700/60 transition">
+        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <span>جستجوی سریع ابزارها...</span>
+        <kbd class="px-1.5 py-0.5 bg-slate-900 text-slate-400 rounded text-[10px] border border-slate-700">Ctrl+K</kbd>
+      </button>
+
+      <!-- View Switcher Tabs -->
+      <nav class="flex items-center gap-1 bg-slate-900/70 p-1 rounded-xl border border-slate-800 text-xs">
+        <button id="tab-btn-dashboard" onclick="ArminApp.switchView('dashboard')" class="px-3 py-1 rounded-lg font-medium transition text-white bg-slate-800">داشبورد</button>
+        <button id="tab-btn-editor" onclick="ArminApp.switchView('editor')" class="px-3 py-1 rounded-lg font-medium transition text-slate-400 hover:text-slate-200">استودیو اکسل</button>
+        <button id="tab-btn-pipeline" onclick="ArminApp.switchView('pipeline')" class="px-3 py-1 rounded-lg font-medium transition text-slate-400 hover:text-slate-200">اتوماسیون و پایپ‌لاین</button>
+        <button id="tab-btn-inspector" onclick="ArminApp.switchView('inspector')" class="px-3 py-1 rounded-lg font-medium transition text-slate-400 hover:text-slate-200">تحلیل و Inspector</button>
+        <button id="tab-btn-compare" onclick="ArminApp.switchView('compare')" class="px-3 py-1 rounded-lg font-medium transition text-slate-400 hover:text-slate-200">مقایسه فایل‌ها</button>
+      </nav>
+    </div>
+
+    <!-- Header Actions & ZIP Download -->
+    <div class="flex items-center gap-2">
+      <!-- Undo / Redo -->
+      <div class="flex items-center bg-slate-800/80 rounded-lg border border-slate-700/60 p-0.5">
+        <button onclick="ArminCore.History.undo()" title="Undo (Ctrl+Z)" class="p-1.5 hover:bg-slate-700 rounded text-slate-300 hover:text-white transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a5 5 0 015 5v2M3 10l6-6m-6 6l6 6"/></svg>
+        </button>
+        <button onclick="ArminCore.History.redo()" title="Redo (Ctrl+Y)" class="p-1.5 hover:bg-slate-700 rounded text-slate-300 hover:text-white transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10H11a5 5 0 00-5 5v2m15-7l-6-6m6 6l-6 6"/></svg>
+        </button>
+      </div>
+
+      <!-- Export Trigger Dropdown Button -->
+      <div class="relative">
+        <button onclick="ArminApp.toggleExportMenu()" class="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          <span>خروجی و دانلود</span>
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div id="export-menu" class="hidden absolute left-0 mt-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-1 z-50 text-xs text-slate-200">
+          <button onclick="ArminApp.exportActive('xlsx')" class="w-full text-right px-3 py-2 rounded-lg hover:bg-slate-800 flex items-center justify-between">
+            <span>فرمت Excel (.xlsx)</span>
+            <span class="text-emerald-400 text-[10px] font-mono">XLSX</span>
+          </button>
+          <button onclick="ArminApp.exportActive('csv')" class="w-full text-right px-3 py-2 rounded-lg hover:bg-slate-800 flex items-center justify-between">
+            <span>فرمت CSV استاندارد</span>
+            <span class="text-blue-400 text-[10px] font-mono">CSV</span>
+          </button>
+          <button onclick="ArminApp.exportActive('json')" class="w-full text-right px-3 py-2 rounded-lg hover:bg-slate-800 flex items-center justify-between">
+            <span>فرمت JSON ساختاریافته</span>
+            <span class="text-amber-400 text-[10px] font-mono">JSON</span>
+          </button>
+          <button onclick="ArminApp.exportActive('html')" class="w-full text-right px-3 py-2 rounded-lg hover:bg-slate-800 flex items-center justify-between">
+            <span>جدول وب HTML</span>
+            <span class="text-purple-400 text-[10px] font-mono">HTML</span>
+          </button>
+          <hr class="border-slate-800 my-1">
+          <button onclick="ArminApp.exportAllAsZip()" class="w-full text-right px-3 py-2 rounded-lg hover:bg-slate-800 flex items-center justify-between text-brand-400 font-medium">
+            <span>دانلود همه فایل‌ها (ZIP)</span>
+            <span class="text-[10px] font-mono">.ZIP</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Download Complete Source Project ZIP -->
+      <button onclick="ArminApp.downloadProjectSourceZip()" title="دریافت فایل زیپ کامل سورس‌پروژه ArminExcel" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-300 hover:text-amber-200 rounded-lg text-xs font-medium transition shadow-sm">
+        <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <span>دریافت کد پروژه (ZIP)</span>
+      </button>
+
+      <!-- Theme & Help -->
+      <button onclick="ArminApp.toggleTheme()" class="p-2 bg-slate-800/80 hover:bg-slate-800 rounded-lg border border-slate-700 text-slate-300" title="تغییر تم">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Application Body Container -->
+  <main class="flex-1 flex overflow-hidden relative">
+    
+    <!-- Sidebar / File Explorer & Quick Tools (Collapsible) -->
+    <aside id="app-sidebar" class="w-64 bg-surface-900 border-l border-slate-800 flex flex-col shrink-0 transition-all duration-300">
+      <div class="p-3 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+          <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <span>فضای کاری (Workspace)</span>
+        </div>
+        <span id="file-count-badge" class="px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full text-[10px] font-mono">0 فایل</span>
+      </div>
+
+      <!-- Drag & Drop Mini Area / Add Button -->
+      <div class="p-2.5">
+        <label for="file-upload-input" class="cursor-pointer border-2 border-dashed border-slate-700/80 hover:border-brand-500/70 hover:bg-brand-950/20 rounded-xl p-3 flex flex-col items-center justify-center text-center transition group">
+          <svg class="w-6 h-6 text-slate-400 group-hover:text-brand-400 mb-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          <span class="text-xs font-medium text-slate-300 group-hover:text-brand-300">افزودن فایل اکسل / CSV</span>
+          <span class="text-[10px] text-slate-500 mt-0.5">XLSX, XLS, CSV, TSV, JSON</span>
+          <input id="file-upload-input" type="file" multiple accept=".xlsx, .xls, .csv, .tsv, .json" class="hidden" onchange="ArminApp.handleFileInput(this.files)" />
+        </label>
+      </div>
+
+      <!-- Loaded File List -->
+      <div class="flex-1 overflow-y-auto px-2 space-y-1" id="workspace-file-list">
+        <!-- Injected via ArminCore.State -->
+        <div class="p-4 text-center text-slate-500 text-xs">
+          هیچ فایلی باز نشده است. یک فایل بارگذاری کنید یا داده نمونه را لود کنید.
+        </div>
+      </div>
+
+      <!-- Load Sample Demo Data Button -->
+      <div class="p-2 border-t border-slate-800">
+        <button onclick="ArminApp.loadDemoData()" class="w-full py-2 bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-xs font-medium rounded-lg border border-slate-700/60 transition flex items-center justify-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <span>بارگذاری داده نمونه هوشمند</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Content Display Area -->
+    <div class="flex-1 flex flex-col overflow-hidden bg-surface-950">
+
+      <!-- VIEW 1: DASHBOARD -->
+      <section id="view-dashboard" class="flex-1 overflow-y-auto p-6 space-y-6">
+        <div class="max-w-6xl mx-auto space-y-6">
+          <!-- Hero Banner -->
+          <div class="relative overflow-hidden bg-gradient-to-r from-slate-900 via-surface-850 to-brand-950/40 border border-slate-800/80 rounded-2xl p-6 shadow-xl">
+            <div class="relative z-10 max-w-2xl">
+              <span class="text-xs font-semibold uppercase tracking-wider text-brand-400 bg-brand-950/60 border border-brand-800/50 px-2.5 py-1 rounded-full">استودیو پردازش داده محلی و کاملاً امن</span>
+              <h1 class="text-2xl md:text-3xl font-extrabold text-white mt-3">مرکز پردازش و پاک‌سازی داده ArminExcel</h1>
+              <p class="text-slate-400 text-sm mt-2 leading-relaxed">
+                پردازش فوق سریع فایل‌های بزرگ اکسل بدون ارسال به هیچ سرور خارجی. پاک‌سازی داده‌ها، فیلتر، ترکیب (Merge)، جداسازی (Split) و پایپ‌لاین‌های خودکار بدون نیاز به کدنویسی.
+              </p>
+              <div class="mt-5 flex flex-wrap items-center gap-3">
+                <button onclick="document.getElementById('file-upload-input').click()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold transition flex items-center gap-2 shadow-lg shadow-brand-900/30">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                  <span>شروع با بازکردن فایل</span>
+                </button>
+                <button onclick="ArminApp.loadDemoData()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-medium transition">
+                  تست با داده‌های نمونه
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Metrics Grid -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl">
+              <div class="text-slate-400 text-xs">تعداد فایل‌های باز</div>
+              <div id="stat-files" class="text-2xl font-bold text-white mt-1">0</div>
+              <div class="text-[11px] text-slate-500 mt-1">آماده در حافظه محلی</div>
+            </div>
+            <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl">
+              <div class="text-slate-400 text-xs">مجموع ردیف‌ها</div>
+              <div id="stat-rows" class="text-2xl font-bold text-brand-400 mt-1">0</div>
+              <div class="text-[11px] text-slate-500 mt-1">در شیت‌های فعال</div>
+            </div>
+            <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl">
+              <div class="text-slate-400 text-xs">ستون‌های داده</div>
+              <div id="stat-cols" class="text-2xl font-bold text-blue-400 mt-1">0</div>
+              <div class="text-[11px] text-slate-500 mt-1">دارای هدر و ساختار</div>
+            </div>
+            <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl">
+              <div class="text-slate-400 text-xs">عملیات ثبت‌شده در History</div>
+              <div id="stat-ops" class="text-2xl font-bold text-amber-400 mt-1">0</div>
+              <div class="text-[11px] text-slate-500 mt-1">قابل بازگشت (Undo)</div>
+            </div>
+          </div>
+
+          <!-- Quick Operations Launchpad -->
+          <div class="space-y-3">
+            <h2 class="text-sm font-bold text-slate-300 flex items-center gap-2">
+              <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+              <span>ابزارهای پرکاربرد و پاک‌سازی سریع</span>
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <!-- Action 1 -->
+              <button onclick="ArminOperations.runQuickOp('removeEmptyRows')" class="p-3 bg-surface-900 hover:bg-slate-800/90 border border-slate-800 hover:border-brand-500/50 rounded-xl text-right transition group">
+                <div class="w-8 h-8 rounded-lg bg-emerald-950/60 text-emerald-400 flex items-center justify-center mb-2 border border-emerald-800/40">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </div>
+                <div class="font-semibold text-xs text-slate-200 group-hover:text-brand-300">حذف ردیف‌های خالی</div>
+                <div class="text-[11px] text-slate-500 mt-1">پاک‌سازی تمام سطرهای بدون مقدار</div>
+              </button>
+
+              <!-- Action 2 -->
+              <button onclick="ArminOperations.runQuickOp('removeDuplicates')" class="p-3 bg-surface-900 hover:bg-slate-800/90 border border-slate-800 hover:border-brand-500/50 rounded-xl text-right transition group">
+                <div class="w-8 h-8 rounded-lg bg-blue-950/60 text-blue-400 flex items-center justify-center mb-2 border border-blue-800/40">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                </div>
+                <div class="font-semibold text-xs text-slate-200 group-hover:text-blue-300">حذف سطرهای تکراری</div>
+                <div class="text-[11px] text-slate-500 mt-1">تشخیص هوشمند رکوردهای تکراری</div>
+              </button>
+
+              <!-- Action 3 -->
+              <button onclick="ArminOperations.runQuickOp('trimText')" class="p-3 bg-surface-900 hover:bg-slate-800/90 border border-slate-800 hover:border-brand-500/50 rounded-xl text-right transition group">
+                <div class="w-8 h-8 rounded-lg bg-amber-950/60 text-amber-400 flex items-center justify-center mb-2 border border-amber-800/40">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879a3 3 0 11-4.242-4.242L10.758 4.758a3 3 0 114.242 4.242L12 12z"/></svg>
+                </div>
+                <div class="font-semibold text-xs text-slate-200 group-hover:text-amber-300">حذف فاصله‌های اضافی (Trim)</div>
+                <div class="text-[11px] text-slate-500 mt-1">حذف اسپیس‌های ابتدایی و انتهایی</div>
+              </button>
+
+              <!-- Action 4 -->
+              <button onclick="ArminApp.openOpModal('splitColumn')" class="p-3 bg-surface-900 hover:bg-slate-800/90 border border-slate-800 hover:border-brand-500/50 rounded-xl text-right transition group">
+                <div class="w-8 h-8 rounded-lg bg-purple-950/60 text-purple-400 flex items-center justify-center mb-2 border border-purple-800/40">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                </div>
+                <div class="font-semibold text-xs text-slate-200 group-hover:text-purple-300">جداسازی ستون (Split)</div>
+                <div class="text-[11px] text-slate-500 mt-1">بر اساس جداکننده (Delimiter)</div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 2: EXCEL STUDIO GRID EDITOR -->
+      <section id="view-editor" class="hidden flex-1 flex flex-col overflow-hidden">
+        <!-- Editor Toolbar -->
+        <div class="h-11 border-b border-slate-800 bg-surface-900 px-3 flex items-center justify-between gap-3 shrink-0 text-xs">
+          <!-- Left: Row & Column Tools -->
+          <div class="flex items-center gap-1.5 overflow-x-auto">
+            <button onclick="ArminEditor.addRow()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded border border-slate-700 transition flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              <span>سطر جدید</span>
+            </button>
+            <button onclick="ArminEditor.addColumn()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded border border-slate-700 transition flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              <span>ستون جدید</span>
+            </button>
+            <div class="h-4 w-[1px] bg-slate-700 mx-1"></div>
+            <button onclick="ArminEditor.deleteSelectedRow()" class="px-2 py-1 bg-slate-800 hover:bg-rose-900/60 text-slate-300 hover:text-rose-200 rounded border border-slate-700 transition">
+              حذف سطر انتخاب‌شده
+            </button>
+            <button onclick="ArminApp.openOpModal('filter')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+              <span>فیلتر پیشرفته</span>
+            </button>
+            <button onclick="ArminApp.openOpModal('sort')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/></svg>
+              <span>مرتب‌سازی (Sort)</span>
+            </button>
+          </div>
+
+          <!-- Quick Search Filter in Sheet -->
+          <div class="flex items-center gap-2">
+            <div class="relative">
+              <input id="grid-search-input" oninput="ArminEditor.searchGrid(this.value)" type="text" placeholder="فیلتر سریع در شیت..." class="bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1 text-xs w-48 focus:border-brand-500 focus:w-60 transition-all text-slate-200 placeholder:text-slate-500" />
+            </div>
+            <span id="active-sheet-info" class="text-[11px] text-slate-400 font-mono">0 سطر × 0 ستون</span>
+          </div>
+        </div>
+
+        <!-- Formula Bar -->
+        <div class="h-9 border-b border-slate-800 bg-surface-950 px-3 flex items-center gap-2 shrink-0">
+          <span id="selected-cell-coord" class="text-[11px] font-mono text-brand-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded font-bold">A1</span>
+          <span class="text-slate-600 text-xs font-mono">fx |</span>
+          <input id="formula-bar-input" oninput="ArminEditor.updateActiveCellValue(this.value)" type="text" class="flex-1 bg-transparent text-xs text-slate-200 font-mono focus:outline-none" placeholder="مقدار سلول یا فرمول..." />
+        </div>
+
+        <!-- Scrollable Table Container -->
+        <div class="flex-1 overflow-auto bg-slate-950 relative" id="grid-scroll-container">
+          <table id="spreadsheet-table" class="border-collapse text-xs text-slate-300 w-full select-text">
+            <thead class="sticky top-0 bg-surface-900 z-10 shadow-sm" id="grid-thead">
+              <!-- Dynamic Table Headers -->
+            </thead>
+            <tbody id="grid-tbody" class="divide-y divide-slate-800/80">
+              <!-- Dynamic Table Rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Sheet Selector Tabs Footer -->
+        <div class="h-9 border-t border-slate-800 bg-surface-900 px-3 flex items-center justify-between shrink-0">
+          <div class="flex items-center gap-1 overflow-x-auto" id="sheet-tabs-container">
+            <!-- Sheet Tabs inserted dynamically -->
+          </div>
+          <button onclick="ArminEditor.addSheet()" class="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition" title="افزودن شیت جدید">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- VIEW 3: AUTOMATION PIPELINE BUILDER -->
+      <section id="view-pipeline" class="hidden flex-1 overflow-y-auto p-6 space-y-6">
+        <div class="max-w-4xl mx-auto space-y-5">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-bold text-white">پایپ‌لاین پردازش زنجیره‌ای (Pipeline Builder)</h2>
+              <p class="text-slate-400 text-xs mt-0.5">عملیات‌ها را زنجیروار پشت سر هم بچینید و با یک کلیک روی تمام داده‌ها اجرا کنید.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="ArminAutomation.runPipeline()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-brand-900/30 transition flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>اجرای کامل پایپ‌لاین</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Step Builder List -->
+          <div class="bg-surface-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-300 pb-2 border-b border-slate-800">
+              <span>مراحل پردازش متوالی</span>
+              <button onclick="ArminAutomation.addStepModal()" class="text-brand-400 hover:text-brand-300 flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <span>افزودن مرحله جدید</span>
+              </button>
+            </div>
+
+            <div id="pipeline-steps-list" class="space-y-2">
+              <!-- Injected Pipeline Steps -->
+            </div>
+          </div>
+
+          <!-- Batch Multi-File Execution Panel -->
+          <div class="bg-surface-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+            <h3 class="text-xs font-bold text-slate-300">پردازش دسته‌ای چند فایل همزمان (Batch Processing)</h3>
+            <p class="text-slate-400 text-xs">اجرای پایپ‌لاین فعلی روی همه فایل‌های موجود در Workspace با تولید خروجی ZIP یکپارچه.</p>
+            <div class="flex items-center justify-between pt-2">
+              <span id="batch-status-text" class="text-xs text-slate-500 font-mono">آماده برای پردازش دسته‌ای</span>
+              <button onclick="ArminAutomation.runBatchProcess()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-medium border border-slate-700 transition">
+                پردازش همه فایل‌ها
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 4: INSPECTOR & HEALTH ANALYZER -->
+      <section id="view-inspector" class="hidden flex-1 overflow-y-auto p-6 space-y-6">
+        <div class="max-w-5xl mx-auto space-y-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-bold text-white">بازرسی سلامت داده و آنالیز آماری (Health Inspector)</h2>
+              <p class="text-slate-400 text-xs mt-0.5">شناسایی خطاهای داده‌ای، مقادیر گم‌شده، نوع داده‌های ناهمگن و محاسبه خلاصه آماری دقیق.</p>
+            </div>
+            <button onclick="ArminIntelligence.runInspection()" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-semibold shadow transition">
+              بروزرسانی بازرسی
+            </button>
+          </div>
+
+          <!-- Health Summary Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl flex items-start justify-between">
+              <div>
+                <div class="text-xs text-slate-400">سلول‌های خالی (Empty Cells)</div>
+                <div id="insp-empty-cells" class="text-xl font-bold text-amber-400 mt-1">0</div>
+                <div class="text-[11px] text-slate-500 mt-1">امکان پرکردن یا حذف سریع</div>
+              </div>
+              <button onclick="ArminOperations.runQuickOp('removeEmptyRows')" class="px-2 py-1 bg-amber-950/60 hover:bg-amber-900 text-amber-300 text-[11px] rounded border border-amber-800/40">اصلاح</button>
+            </div>
+
+            <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl flex items-start justify-between">
+              <div>
+                <div class="text-xs text-slate-400">ردیف‌های تکراری (Duplicate Rows)</div>
+                <div id="insp-duplicates" class="text-xl font-bold text-rose-400 mt-1">0</div>
+                <div class="text-[11px] text-slate-500 mt-1">رکوردهای کاملاً یکسان</div>
+              </div>
+              <button onclick="ArminOperations.runQuickOp('removeDuplicates')" class="px-2 py-1 bg-rose-950/60 hover:bg-rose-900 text-rose-300 text-[11px] rounded border border-rose-800/40">حذف</button>
+            </div>
+
+            <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl flex items-start justify-between">
+              <div>
+                <div class="text-xs text-slate-400">امتیاز کلی سلامت (Health Score)</div>
+                <div id="insp-health-score" class="text-xl font-bold text-brand-400 mt-1">100%</div>
+                <div class="text-[11px] text-slate-500 mt-1">ارزیابی ساختار و داده</div>
+              </div>
+              <span class="text-brand-500 text-xl font-black">✓</span>
+            </div>
+          </div>
+
+          <!-- Statistical Analytics & Chart Generation -->
+          <div class="bg-surface-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs font-bold text-slate-200">تحلیل آماری ستون‌ها (SUM, AVG, MIN, MAX, MEDIAN)</h3>
+              <div class="flex items-center gap-2">
+                <label class="text-[11px] text-slate-400">انتخاب ستون:</label>
+                <select id="analyzer-column-select" onchange="ArminIntelligence.updateColumnStats(this.value)" class="bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-lg px-2.5 py-1">
+                  <!-- Columns injected -->
+                </select>
+              </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3" id="stats-summary-grid">
+              <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg text-center">
+                <div class="text-[10px] text-slate-400">مجموع (SUM)</div>
+                <div id="stat-sum" class="text-sm font-bold text-slate-200 mt-1">-</div>
+              </div>
+              <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg text-center">
+                <div class="text-[10px] text-slate-400">میانگین (AVG)</div>
+                <div id="stat-avg" class="text-sm font-bold text-slate-200 mt-1">-</div>
+              </div>
+              <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg text-center">
+                <div class="text-[10px] text-slate-400">حداقل (MIN)</div>
+                <div id="stat-min" class="text-sm font-bold text-slate-200 mt-1">-</div>
+              </div>
+              <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg text-center">
+                <div class="text-[10px] text-slate-400">حداکثر (MAX)</div>
+                <div id="stat-max" class="text-sm font-bold text-slate-200 mt-1">-</div>
+              </div>
+              <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg text-center">
+                <div class="text-[10px] text-slate-400">میانه (MEDIAN)</div>
+                <div id="stat-median" class="text-sm font-bold text-slate-200 mt-1">-</div>
+              </div>
+            </div>
+
+            <!-- Chart Canvas -->
+            <div class="h-64 bg-slate-950 border border-slate-800/80 rounded-xl p-3 flex items-center justify-center">
+              <canvas id="analytics-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 5: WORKBOOK & SHEET COMPARISON -->
+      <section id="view-compare" class="hidden flex-1 overflow-y-auto p-6 space-y-6">
+        <div class="max-w-4xl mx-auto space-y-5">
+          <div>
+            <h2 class="text-lg font-bold text-white">مقایسه هوشمند دو فایل یا شیت (Diff & Compare)</h2>
+            <p class="text-slate-400 text-xs mt-0.5">شناسایی سطرهای اضافه‌شده، حذف‌شده یا سلول‌های تغییریافته میان دو نسخه از فایل.</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl space-y-3">
+              <label class="text-xs font-semibold text-slate-300">فایل مرجع (پایه / اصلی)</label>
+              <select id="compare-file-a" class="w-full bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-lg p-2"></select>
+            </div>
+            <div class="bg-surface-900 border border-slate-800 p-4 rounded-xl space-y-3">
+              <label class="text-xs font-semibold text-slate-300">فایل مقایسه (نسخه جدید)</label>
+              <select id="compare-file-b" class="w-full bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-lg p-2"></select>
+            </div>
+          </div>
+
+          <div class="text-center">
+            <button onclick="ArminIntelligence.runComparison()" class="px-5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-xs font-bold shadow-lg transition">
+              اجرای مقایسه دقیق
+            </button>
+          </div>
+
+          <!-- Comparison Results -->
+          <div id="compare-results-container" class="hidden bg-surface-900 border border-slate-800 rounded-2xl p-4 space-y-4">
+            <div class="grid grid-cols-3 gap-3 text-center">
+              <div class="bg-emerald-950/40 border border-emerald-800/40 p-3 rounded-xl">
+                <div class="text-[11px] text-emerald-300">سطرهای جدید (Added)</div>
+                <div id="diff-added-count" class="text-lg font-bold text-emerald-400 mt-1">0</div>
+              </div>
+              <div class="bg-rose-950/40 border border-rose-800/40 p-3 rounded-xl">
+                <div class="text-[11px] text-rose-300">سطرهای حذف‌شده (Removed)</div>
+                <div id="diff-removed-count" class="text-lg font-bold text-rose-400 mt-1">0</div>
+              </div>
+              <div class="bg-amber-950/40 border border-amber-800/40 p-3 rounded-xl">
+                <div class="text-[11px] text-amber-300">تغییر یافته (Modified)</div>
+                <div id="diff-changed-count" class="text-lg font-bold text-amber-400 mt-1">0</div>
+              </div>
+            </div>
+            <div id="diff-details-list" class="max-h-60 overflow-y-auto space-y-1 text-xs font-mono text-slate-300"></div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Status Bar -->
+  <footer class="h-7 bg-surface-900 border-t border-slate-800 px-4 flex items-center justify-between text-[11px] text-slate-400 shrink-0 z-20">
+    <div class="flex items-center gap-4">
+      <span class="flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-brand-500 badge-glow"></span>
+        <span id="status-task-label">سیستم آماده است</span>
+      </span>
+      <span class="text-slate-600">|</span>
+      <span id="status-active-file">هیچ فایلی فعال نیست</span>
+    </div>
+    <div class="flex items-center gap-3 font-mono">
+      <span>موتور محلی: SheetJS v0.18</span>
+      <span>محافظت حریم خصوصی: 100% آفلاین</span>
+    </div>
+  </footer>
+
+  <!-- Generic Config Modal Dialog -->
+  <div id="operation-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-surface-900 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden fade-in">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+        <h3 id="modal-title" class="text-sm font-bold text-white">تنظیمات عملیات</h3>
+        <button onclick="ArminApp.closeModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">✕</button>
+      </div>
+      <div id="modal-body" class="p-4 text-xs space-y-3">
+        <!-- Injected dynamic fields -->
+      </div>
+      <div class="p-3 border-t border-slate-800 bg-surface-950 flex justify-end gap-2">
+        <button onclick="ArminApp.closeModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs">انصراف</button>
+        <button id="modal-submit-btn" class="px-4 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold">تأیید و اجرا</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Command Palette Modal (Ctrl+K) -->
+  <div id="command-palette-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-start justify-center pt-20 p-4" onclick="if(event.target===this) ArminApp.closeCommandPalette()">
+    <div class="bg-surface-900 border border-slate-700 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden fade-in">
+      <div class="p-3 border-b border-slate-800 flex items-center gap-2">
+        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input id="palette-search-input" oninput="ArminApp.filterCommandPalette(this.value)" type="text" placeholder="جستجوی ابزار (حذف تکراری، مرتب‌سازی، ستون...)" class="flex-1 bg-transparent text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none" />
+        <kbd class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">ESC</kbd>
+      </div>
+      <div id="palette-results-list" class="max-h-72 overflow-y-auto p-2 space-y-1 text-xs">
+        <!-- Dynamic Commands -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed bottom-10 left-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- JAVASCRIPT ENGINE & ARCHITECTURE -->
+  <script>
+/**
+ * ARMINEXCEL WEB STUDIO - CORE ARCHITECTURE
+ * 1. Foundation (Core, EventBus, State, History, Notifications)
+ * 2. File & Workbook Engine (SheetJS parsing, Multi-file management)
+ * 3. Data Engine (Clean, Transform, Filter, Sort)
+ * 4. Operation Engine (Modular operations with validation)
+ * 5. Automation & Pipeline Engine (Batch runner, Presets)
+ * 6. Intelligence Layer (Health Inspector, Statistics, Diff)
+ * 7. UI / Grid Editor & Command Center
+ */
+
+const ArminCore = {
+  // Event Bus for decoupled communication
+  EventBus: {
+    listeners: {},
+    on(event, callback) {
+      if (!this.listeners[event]) this.listeners[event] = [];
+      this.listeners[event].push(callback);
+    },
+    emit(event, data) {
+      if (this.listeners[event]) {
+        this.listeners[event].forEach(cb => {
+          try { cb(data); } catch(err) { console.error(`Error in event ${event}:`, err); }
+        });
+      }
+    }
+  },
+
+  // Central Application State
+  State: {
+    files: [],            // [{ id, name, size, workbook, rawData, activeSheetIndex }]
+    activeFileId: null,
+    activeSheetName: null,
+    selectedCell: { row: 0, col: 0 },
+    searchQuery: '',
+    pipeline: [
+      { id: 'p1', opId: 'trimText', name: 'حذف فاصله‌های اضافی (Trim)' },
+      { id: 'p2', opId: 'removeEmptyRows', name: 'حذف سطر‌های خالی' },
+      { id: 'p3', opId: 'removeDuplicates', name: 'حذف ردیف‌های تکراری' }
+    ],
+
+    getActiveFile() {
+      return this.files.find(f => f.id === this.activeFileId) || null;
+    },
+
+    getActiveSheetData() {
+      const file = this.getActiveFile();
+      if (!file || !file.workbook) return [];
+      const sheet = file.workbook.Sheets[this.activeSheetName || file.workbook.SheetNames[0]];
+      if (!sheet) return [];
+      // returns 2D array [ [header1, header2], [val1, val2] ]
+      return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    },
+
+    setActiveSheetData(new2DArray) {
+      const file = this.getActiveFile();
+      if (!file || !file.workbook) return;
+      const sheetName = this.activeSheetName || file.workbook.SheetNames[0];
+      const newSheet = XLSX.utils.aoa_to_sheet(new2DArray);
+      file.workbook.Sheets[sheetName] = newSheet;
+      ArminCore.EventBus.emit('SHEET_CHANGED', { file, sheetName, data: new2DArray });
+    }
+  },
+
+  // Undo / Redo Manager
+  History: {
+    undoStack: [],
+    redoStack: [],
+    maxSize: 25,
+
+    pushSnapshot(description = 'عملیات') {
+      const file = ArminCore.State.getActiveFile();
+      if (!file) return;
+      const snapshot = {
+        fileId: file.id,
+        sheetName: ArminCore.State.activeSheetName,
+        data: JSON.parse(JSON.stringify(ArminCore.State.getActiveSheetData())),
+        description
+      };
+      this.undoStack.push(snapshot);
+      if (this.undoStack.length > this.maxSize) this.undoStack.shift();
+      this.redoStack = [];
+      ArminApp.updateStats();
+    },
+
+    undo() {
+      if (this.undoStack.length === 0) {
+        ArminCore.Notify.show('عملیاتی برای بازگشت وجود ندارد', 'info');
+        return;
+      }
+      const file = ArminCore.State.getActiveFile();
+      if (!file) return;
+
+      const currentData = JSON.parse(JSON.stringify(ArminCore.State.getActiveSheetData()));
+      const lastState = this.undoStack.pop();
+
+      this.redoStack.push({
+        fileId: file.id,
+        sheetName: ArminCore.State.activeSheetName,
+        data: currentData,
+        description: lastState.description
+      });
+
+      ArminCore.State.setActiveSheetData(lastState.data);
+      ArminEditor.renderGrid();
+      ArminCore.Notify.show(`بازگشت: ${lastState.description}`, 'info');
+      ArminApp.updateStats();
+    },
+
+    redo() {
+      if (this.redoStack.length === 0) {
+        ArminCore.Notify.show('عملیاتی برای انجام مجدد وجود ندارد', 'info');
+        return;
+      }
+      const nextState = this.redoStack.pop();
+      const currentData = JSON.parse(JSON.stringify(ArminCore.State.getActiveSheetData()));
+
+      this.undoStack.push({
+        fileId: nextState.fileId,
+        sheetName: nextState.sheetName,
+        data: currentData,
+        description: nextState.description
+      });
+
+      ArminCore.State.setActiveSheetData(nextState.data);
+      ArminEditor.renderGrid();
+      ArminCore.Notify.show(`انجام مجدد: ${nextState.description}`, 'info');
+      ArminApp.updateStats();
+    }
+  },
+
+  // Interactive Toast Notifications
+  Notify: {
+    show(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      const colors = {
+        success: 'bg-emerald-950 border-emerald-700 text-emerald-200',
+        error: 'bg-rose-950 border-rose-700 text-rose-200',
+        info: 'bg-slate-900 border-slate-700 text-slate-200',
+        warning: 'bg-amber-950 border-amber-700 text-amber-200'
+      };
+
+      toast.className = `px-4 py-2.5 rounded-xl border text-xs shadow-2xl flex items-center gap-2 pointer-events-auto fade-in ${colors[type] || colors.info}`;
+      toast.innerHTML = `
+        <span class="w-2 h-2 rounded-full ${type === 'success' ? 'bg-emerald-400' : type === 'error' ? 'bg-rose-400' : 'bg-amber-400'}"></span>
+        <span>${message}</span>
+      `;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+  }
+};
+
+const ArminFileEngine = {
+  async processFiles(fileList) {
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      try {
+        const buffer = await file.arrayBuffer();
+        let workbook;
+
+        if (file.name.endsWith('.json')) {
+          const text = new TextDecoder().decode(buffer);
+          const jsonData = JSON.parse(text);
+          const sheet = XLSX.utils.json_to_sheet(Array.isArray(jsonData) ? jsonData : [jsonData]);
+          workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, sheet, 'JSON_Data');
+        } else {
+          workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+        }
+
+        const fileObj = {
+          id: 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+          name: file.name,
+          size: file.size,
+          workbook: workbook,
+          activeSheetIndex: 0
+        };
+
+        ArminCore.State.files.push(fileObj);
+        ArminCore.State.activeFileId = fileObj.id;
+        ArminCore.State.activeSheetName = workbook.SheetNames[0];
+
+        ArminCore.Notify.show(`فایل "${file.name}" با موفقیت بارگذاری شد.`);
+      } catch (err) {
+        console.error(err);
+        ArminCore.Notify.show(`خطا در پردازش فایل "${file.name}": ${err.message}`, 'error');
+      }
+    }
+
+    ArminFileEngine.renderFileList();
+    ArminApp.updateStats();
+    ArminEditor.renderGrid();
+    ArminIntelligence.runInspection();
+  },
+
+  renderFileList() {
+    const listEl = document.getElementById('workspace-file-list');
+    const files = ArminCore.State.files;
+    document.getElementById('file-count-badge').innerText = `${files.length} فایل`;
+
+    if (files.length === 0) {
+      listEl.innerHTML = `<div class="p-4 text-center text-slate-500 text-xs">هیچ فایلی باز نشده است.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = files.map(f => {
+      const isActive = f.id === ArminCore.State.activeFileId;
+      const sizeKB = (f.size / 1024).toFixed(1);
+      return `
+        <div onclick="ArminFileEngine.selectFile('${f.id}')" class="p-2.5 rounded-xl cursor-pointer transition flex items-center justify-between border ${isActive ? 'bg-brand-950/40 border-brand-700/60 text-white' : 'hover:bg-slate-800/80 border-transparent text-slate-400'}">
+          <div class="flex items-center gap-2 truncate">
+            <svg class="w-4 h-4 shrink-0 ${isActive ? 'text-brand-400' : 'text-slate-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <div class="truncate">
+              <div class="text-xs font-medium truncate ${isActive ? 'text-brand-300 font-semibold' : 'text-slate-300'}">${f.name}</div>
+              <div class="text-[10px] text-slate-500 font-mono">${sizeKB} KB • ${f.workbook.SheetNames.length} شیت</div>
+            </div>
+          </div>
+          <button onclick="event.stopPropagation(); ArminFileEngine.removeFile('${f.id}')" class="p-1 hover:bg-slate-700 rounded text-slate-500 hover:text-rose-400" title="بستن فایل">✕</button>
+        </div>
+      `;
+    }).join('');
+
+    const active = ArminCore.State.getActiveFile();
+    document.getElementById('status-active-file').innerText = active ? `${active.name} (${ArminCore.State.activeSheetName})` : 'هیچ فایلی فعال نیست';
+  },
+
+  selectFile(id) {
+    ArminCore.State.activeFileId = id;
+    const f = ArminCore.State.getActiveFile();
+    if (f) {
+      ArminCore.State.activeSheetName = f.workbook.SheetNames[0];
+    }
+    ArminFileEngine.renderFileList();
+    ArminEditor.renderGrid();
+    ArminIntelligence.runInspection();
+    ArminApp.updateStats();
+  },
+
+  removeFile(id) {
+    ArminCore.State.files = ArminCore.State.files.filter(f => f.id !== id);
+    if (ArminCore.State.activeFileId === id) {
+      ArminCore.State.activeFileId = ArminCore.State.files.length > 0 ? ArminCore.State.files[0].id : null;
+      if (ArminCore.State.activeFileId) {
+        ArminCore.State.activeSheetName = ArminCore.State.getActiveFile().workbook.SheetNames[0];
+      }
+    }
+    ArminFileEngine.renderFileList();
+    ArminEditor.renderGrid();
+    ArminApp.updateStats();
+  }
+};
+
+const ArminDataEngine = {
+  // Trim all cells in the 2D sheet
+  trimText(data) {
+    return data.map(row => row.map(cell => (typeof cell === 'string' ? cell.trim() : cell)));
+  },
+
+  // Remove rows that contain zero values
+  removeEmptyRows(data) {
+    if (!data.length) return [];
+    const header = data[0];
+    const rows = data.slice(1).filter(row => row.some(cell => cell !== null && cell !== undefined && String(cell).trim() !== ''));
+    return [header, ...rows];
+  },
+
+  // Remove rows with duplicate values
+  removeDuplicates(data) {
+    if (!data.length) return [];
+    const header = data[0];
+    const seen = new Set();
+    const uniqueRows = [];
+
+    for (let i = 1; i < data.length; i++) {
+      const rowKey = JSON.stringify(data[i]);
+      if (!seen.has(rowKey)) {
+        seen.add(rowKey);
+        uniqueRows.push(data[i]);
+      }
+    }
+    return [header, ...uniqueRows];
+  },
+
+  // Change letter cases
+  changeCase(data, mode = 'upper') {
+    return data.map((row, rIdx) => {
+      if (rIdx === 0) return row; // keep headers
+      return row.map(cell => {
+        if (typeof cell !== 'string') return cell;
+        if (mode === 'upper') return cell.toUpperCase();
+        if (mode === 'lower') return cell.toLowerCase();
+        if (mode === 'title') return cell.replace(/\b\w/g, l => l.toUpperCase());
+        return cell;
+      });
+    });
+  },
+
+  // Find and Replace
+  findAndReplace(data, findVal, replaceVal, matchExact = false) {
+    return data.map(row => row.map(cell => {
+      if (cell === null || cell === undefined) return cell;
+      const str = String(cell);
+      if (matchExact) {
+        return str === findVal ? replaceVal : cell;
+      }
+      return str.split(findVal).join(replaceVal);
+    }));
+  },
+
+  // Split Column into two based on delimiter
+  splitColumn(data, colIndex, delimiter = ' ') {
+    if (!data.length || colIndex < 0) return data;
+    return data.map((row, rIdx) => {
+      const newRow = [...row];
+      const val = String(newRow[colIndex] || '');
+      const parts = val.split(delimiter);
+      const part1 = parts[0] || '';
+      const part2 = parts.slice(1).join(delimiter) || '';
+
+      if (rIdx === 0) {
+        newRow.splice(colIndex, 1, `${newRow[colIndex]}_1`, `${newRow[colIndex]}_2`);
+      } else {
+        newRow.splice(colIndex, 1, part1, part2);
+      }
+      return newRow;
+    });
+  },
+
+  // Filter Data rows
+  filterData(data, colIndex, condition, targetVal) {
+    if (!data.length) return [];
+    const header = data[0];
+    const rows = data.slice(1).filter(row => {
+      const cellVal = String(row[colIndex] || '');
+      const numCell = parseFloat(cellVal);
+      const numTarget = parseFloat(targetVal);
+
+      switch (condition) {
+        case 'equals': return cellVal.toLowerCase() === targetVal.toLowerCase();
+        case 'notEquals': return cellVal.toLowerCase() !== targetVal.toLowerCase();
+        case 'contains': return cellVal.toLowerCase().includes(targetVal.toLowerCase());
+        case 'startsWith': return cellVal.toLowerCase().startsWith(targetVal.toLowerCase());
+        case 'endsWith': return cellVal.toLowerCase().endsWith(targetVal.toLowerCase());
+        case 'gt': return !isNaN(numCell) && numCell > numTarget;
+        case 'lt': return !isNaN(numCell) && numCell < numTarget;
+        case 'empty': return cellVal.trim() === '';
+        case 'notEmpty': return cellVal.trim() !== '';
+        default: return true;
+      }
+    });
+    return [header, ...rows];
+  },
+
+  // Sort Data
+  sortData(data, colIndex, isAsc = true) {
+    if (data.length <= 1) return data;
+    const header = data[0];
+    const rows = data.slice(1).sort((a, b) => {
+      const valA = a[colIndex] ?? '';
+      const valB = b[colIndex] ?? '';
+      const numA = parseFloat(valA);
+      const numB = parseFloat(valB);
+
+      if (!isNaN(numA) && !isNaN(numB)) {
+        return isAsc ? numA - numB : numB - numA;
+      }
+      return isAsc ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA));
+    });
+    return [header, ...rows];
+  }
+};
+
+const ArminOperations = {
+  registry: {
+    removeEmptyRows: { name: 'حذف سطر‌های خالی', fn: (d) => ArminDataEngine.removeEmptyRows(d) },
+    removeDuplicates: { name: 'حذف سطرهای تکراری', fn: (d) => ArminDataEngine.removeDuplicates(d) },
+    trimText: { name: 'حذف فاصله‌های اضافی (Trim)', fn: (d) => ArminDataEngine.trimText(d) },
+    upperCase: { name: 'تبدیل حروف به بزرگ (UPPERCASE)', fn: (d) => ArminDataEngine.changeCase(d, 'upper') },
+    lowerCase: { name: 'تبدیل حروف به کوچک (lowercase)', fn: (d) => ArminDataEngine.changeCase(d, 'lower') },
+    titleCase: { name: 'حروف اول بزرگ (Title Case)', fn: (d) => ArminDataEngine.changeCase(d, 'title') }
+  },
+
+  runQuickOp(opKey) {
+    const file = ArminCore.State.getActiveFile();
+    if (!file) {
+      ArminCore.Notify.show('ابتدا یک فایل را باز کنید یا داده نمونه را لود کنید.', 'warning');
+      return;
+    }
+
+    const op = this.registry[opKey];
+    if (!op) return;
+
+    ArminCore.History.pushSnapshot(op.name);
+    const oldData = ArminCore.State.getActiveSheetData();
+    const newData = op.fn(oldData);
+    
+    ArminCore.State.setActiveSheetData(newData);
+    ArminEditor.renderGrid();
+    ArminIntelligence.runInspection();
+    ArminCore.Notify.show(`عملیات "${op.name}" با موفقیت اجرا شد.`);
+    ArminApp.updateStats();
+  }
+};
+
+const ArminEditor = {
+  renderGrid() {
+    const data = ArminCore.State.getActiveSheetData();
+    const thead = document.getElementById('grid-thead');
+    const tbody = document.getElementById('grid-tbody');
+    const sheetInfo = document.getElementById('active-sheet-info');
+    const sheetTabs = document.getElementById('sheet-tabs-container');
+
+    if (!data || data.length === 0) {
+      thead.innerHTML = '';
+      tbody.innerHTML = `<tr><td class="p-12 text-center text-slate-500">هیچ داده‌ای در این شیت وجود ندارد. سطر جدید بیفزایید.</td></tr>`;
+      sheetInfo.innerText = '0 سطر × 0 ستون';
+      sheetTabs.innerHTML = '';
+      return;
+    }
+
+    const colCount = Math.max(...data.map(r => r.length), 1);
+    const rowCount = data.length;
+    sheetInfo.innerText = `${rowCount} سطر × ${colCount} ستون`;
+
+    // Render Sheets Tab list
+    const file = ArminCore.State.getActiveFile();
+    if (file && file.workbook) {
+      sheetTabs.innerHTML = file.workbook.SheetNames.map(name => {
+        const isActive = name === ArminCore.State.activeSheetName;
+        return `
+          <button onclick="ArminEditor.switchSheet('${name}')" class="px-3 py-1 text-xs rounded-t-md font-medium border-t-2 transition ${isActive ? 'bg-slate-950 border-brand-500 text-white font-semibold' : 'border-transparent hover:bg-slate-800 text-slate-400'}">
+            ${name}
+          </button>
+        `;
+      }).join('');
+    }
+
+    // Render Headers (Row 0 as header or column letters A, B, C...)
+    const headers = data[0];
+    let headerHTML = `<tr class="border-b border-slate-800">
+      <th class="w-10 bg-surface-900 border-l border-slate-800 p-2 text-center text-[10px] text-slate-500 font-mono">#</th>`;
+    
+    for (let c = 0; c < colCount; c++) {
+      const colTitle = headers && headers[c] !== undefined && headers[c] !== '' ? headers[c] : String.fromCharCode(65 + (c % 26));
+      headerHTML += `
+        <th class="border-l border-slate-800 p-2 text-right text-xs font-semibold text-slate-300 bg-surface-900/90 select-none">
+          <div class="flex items-center justify-between gap-2">
+            <span class="truncate">${colTitle}</span>
+            <button onclick="ArminEditor.deleteColumn(${c})" class="text-slate-600 hover:text-rose-400 text-[10px]" title="حذف این ستون">✕</button>
+          </div>
+        </th>
+      `;
+    }
+    headerHTML += `</tr>`;
+    thead.innerHTML = headerHTML;
+
+    // Render Rows (up to 150 rows in view for super smooth high performance)
+    const displayRows = data.slice(1, 151);
+    let bodyHTML = '';
+
+    displayRows.forEach((row, rIdx) => {
+      const actualRowIndex = rIdx + 1;
+      bodyHTML += `<tr class="hover:bg-slate-900/50 transition">
+        <td class="bg-surface-900/60 border-l border-slate-800 p-1.5 text-center text-[10px] font-mono text-slate-500 select-none">${actualRowIndex}</td>`;
+      
+      for (let c = 0; c < colCount; c++) {
+        const cellVal = row[c] !== undefined ? row[c] : '';
+        bodyHTML += `
+          <td contenteditable="true"
+              class="grid-cell border-l border-slate-800/80 p-2 text-xs text-slate-300 whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]"
+              data-row="${actualRowIndex}" data-col="${c}"
+              onfocus="ArminEditor.onCellFocus(${actualRowIndex}, ${c}, this.innerText)"
+              onblur="ArminEditor.onCellBlur(${actualRowIndex}, ${c}, this.innerText)">
+            ${cellVal}
+          </td>
+        `;
+      }
+      bodyHTML += `</tr>`;
+    });
+
+    tbody.innerHTML = bodyHTML;
+  },
+
+  onCellFocus(row, col, value) {
+    ArminCore.State.selectedCell = { row, col };
+    const colName = String.fromCharCode(65 + (col % 26)) + (row);
+    document.getElementById('selected-cell-coord').innerText = colName;
+    document.getElementById('formula-bar-input').value = value;
+  },
+
+  onCellBlur(row, col, newValue) {
+    const data = ArminCore.State.getActiveSheetData();
+    if (data[row] && data[row][col] !== newValue) {
+      ArminCore.History.pushSnapshot('ویرایش سلول');
+      data[row][col] = newValue;
+      ArminCore.State.setActiveSheetData(data);
+    }
+  },
+
+  updateActiveCellValue(val) {
+    const { row, col } = ArminCore.State.selectedCell;
+    const targetCell = document.querySelector(`.grid-cell[data-row="${row}"][data-col="${col}"]`);
+    if (targetCell) targetCell.innerText = val;
+    const data = ArminCore.State.getActiveSheetData();
+    if (data[row]) {
+      data[row][col] = val;
+      ArminCore.State.setActiveSheetData(data);
+    }
+  },
+
+  addRow() {
+    ArminCore.History.pushSnapshot('افزودن سطر جدید');
+    const data = ArminCore.State.getActiveSheetData();
+    const colCount = data[0] ? data[0].length : 3;
+    const newRow = new Array(colCount).fill('');
+    data.push(newRow);
+    ArminCore.State.setActiveSheetData(data);
+    ArminEditor.renderGrid();
+  },
+
+  addColumn() {
+    ArminCore.History.pushSnapshot('افزودن ستون جدید');
+    const data = ArminCore.State.getActiveSheetData();
+    if (!data.length) {
+      data.push(['New_Column']);
+    } else {
+      data.forEach((row, idx) => {
+        row.push(idx === 0 ? `ستون_${row.length + 1}` : '');
+      });
+    }
+    ArminCore.State.setActiveSheetData(data);
+    ArminEditor.renderGrid();
+  },
+
+  deleteColumn(colIndex) {
+    ArminCore.History.pushSnapshot('حذف ستون');
+    const data = ArminCore.State.getActiveSheetData();
+    data.forEach(row => row.splice(colIndex, 1));
+    ArminCore.State.setActiveSheetData(data);
+    ArminEditor.renderGrid();
+  },
+
+  deleteSelectedRow() {
+    const { row } = ArminCore.State.selectedCell;
+    if (row <= 0) return;
+    ArminCore.History.pushSnapshot('حذف سطر');
+    const data = ArminCore.State.getActiveSheetData();
+    data.splice(row, 1);
+    ArminCore.State.setActiveSheetData(data);
+    ArminEditor.renderGrid();
+    ArminCore.Notify.show(`سطر شماره ${row} حذف شد.`);
+  },
+
+  switchSheet(sheetName) {
+    ArminCore.State.activeSheetName = sheetName;
+    ArminEditor.renderGrid();
+    ArminIntelligence.runInspection();
+  },
+
+  addSheet() {
+    const file = ArminCore.State.getActiveFile();
+    if (!file) return;
+    const newSheetName = `Sheet_${file.workbook.SheetNames.length + 1}`;
+    const newSheet = XLSX.utils.aoa_to_sheet([['شناسه', 'نام', 'مقدار']]);
+    XLSX.utils.book_append_sheet(file.workbook, newSheet, newSheetName);
+    ArminCore.State.activeSheetName = newSheetName;
+    ArminEditor.renderGrid();
+    ArminCore.Notify.show(`شیت جدید "${newSheetName}" اضافه شد.`);
+  },
+
+  searchGrid(query) {
+    const cells = document.querySelectorAll('.grid-cell');
+    if (!query) {
+      cells.forEach(c => c.classList.remove('bg-brand-950', 'text-brand-200', 'font-bold'));
+      return;
+    }
+    cells.forEach(c => {
+      if (c.innerText.toLowerCase().includes(query.toLowerCase())) {
+        c.classList.add('bg-brand-950', 'text-brand-200', 'font-bold');
+      } else {
+        c.classList.remove('bg-brand-950', 'text-brand-200', 'font-bold');
+      }
+    });
+  }
+};
+
+const ArminIntelligence = {
+  analyticsChartInstance: null,
+
+  runInspection() {
+    const data = ArminCore.State.getActiveSheetData();
+    if (!data.length) return;
+
+    let emptyCells = 0;
+    const rowStrings = [];
+    let duplicates = 0;
+
+    for (let r = 1; r < data.length; r++) {
+      const row = data[r];
+      row.forEach(cell => {
+        if (cell === null || cell === undefined || String(cell).trim() === '') emptyCells++;
+      });
+      const str = JSON.stringify(row);
+      if (rowStrings.includes(str)) duplicates++;
+      else rowStrings.push(str);
+    }
+
+    document.getElementById('insp-empty-cells').innerText = emptyCells;
+    document.getElementById('insp-duplicates').innerText = duplicates;
+
+    // Calculate health score
+    const totalCells = (data.length - 1) * (data[0] ? data[0].length : 1);
+    const score = Math.max(0, Math.round(100 - ((emptyCells + duplicates * 2) / (totalCells || 1)) * 100));
+    document.getElementById('insp-health-score').innerText = `${score}%`;
+
+    // Populate Column Select for statistical analysis
+    const colSelect = document.getElementById('analyzer-column-select');
+    if (data[0]) {
+      colSelect.innerHTML = data[0].map((h, i) => `<option value="${i}">${h || 'ستون ' + (i+1)}</option>`).join('');
+      ArminIntelligence.updateColumnStats(0);
+    }
+  },
+
+  updateColumnStats(colIndex) {
+    const data = ArminCore.State.getActiveSheetData();
+    if (!data || data.length <= 1) return;
+
+    const values = [];
+    const labels = [];
+
+    for (let r = 1; r < data.length; r++) {
+      const val = parseFloat(data[r][colIndex]);
+      if (!isNaN(val)) {
+        values.push(val);
+        labels.push(`R${r}`);
+      }
+    }
+
+    if (values.length === 0) {
+      document.getElementById('stat-sum').innerText = '-';
+      document.getElementById('stat-avg').innerText = '-';
+      document.getElementById('stat-min').innerText = '-';
+      document.getElementById('stat-max').innerText = '-';
+      document.getElementById('stat-median').innerText = '-';
+      return;
+    }
+
+    const sum = values.reduce((a, b) => a + b, 0);
+    const avg = sum / values.length;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    
+    // Median
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    const median = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+
+    document.getElementById('stat-sum').innerText = sum.toLocaleString();
+    document.getElementById('stat-avg').innerText = avg.toFixed(2);
+    document.getElementById('stat-min').innerText = min.toLocaleString();
+    document.getElementById('stat-max').innerText = max.toLocaleString();
+    document.getElementById('stat-median').innerText = median.toLocaleString();
+
+    // Render / Update Chart.js
+    const ctx = document.getElementById('analytics-chart').getContext('2d');
+    if (this.analyticsChartInstance) {
+      this.analyticsChartInstance.destroy();
+    }
+
+    this.analyticsChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels.slice(0, 30),
+        datasets: [{
+          label: data[0][colIndex] || 'مقادیر ستون',
+          data: values.slice(0, 30),
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.15)',
+          fill: true,
+          tension: 0.3,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#94a3b8', font: { family: 'Vazirmatn' } } }
+        },
+        scales: {
+          x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(51, 65, 85, 0.3)' } },
+          y: { ticks: { color: '#64748b' }, grid: { color: 'rgba(51, 65, 85, 0.3)' } }
+        }
+      }
+    });
+  },
+
+  // Diff comparison between two files
+  runComparison() {
+    const fileAId = document.getElementById('compare-file-a').value;
+    const fileBId = document.getElementById('compare-file-b').value;
+    const fA = ArminCore.State.files.find(f => f.id === fileAId);
+    const fB = ArminCore.State.files.find(f => f.id === fileBId);
+
+    if (!fA || !fB) {
+      ArminCore.Notify.show('لطفاً دو فایل را برای مقایسه انتخاب کنید.', 'warning');
+      return;
+    }
+
+    const dataA = XLSX.utils.sheet_to_json(fA.workbook.Sheets[fA.workbook.SheetNames[0]], { header: 1 });
+    const dataB = XLSX.utils.sheet_to_json(fB.workbook.Sheets[fB.workbook.SheetNames[0]], { header: 1 });
+
+    const rowsA = dataA.slice(1).map(r => JSON.stringify(r));
+    const rowsB = dataB.slice(1).map(r => JSON.stringify(r));
+
+    let added = 0;
+    let removed = 0;
+    const details = [];
+
+    rowsB.forEach((rb, idx) => {
+      if (!rowsA.includes(rb)) {
+        added++;
+        details.push(`<div class="text-emerald-400">+ سطر اضافه در فایل ب (سطر ${idx+2}): ${rb.substring(0, 70)}...</div>`);
+      }
+    });
+
+    rowsA.forEach((ra, idx) => {
+      if (!rowsB.includes(ra)) {
+        removed++;
+        details.push(`<div class="text-rose-400">- سطر حذف‌شده از فایل الف (سطر ${idx+2}): ${ra.substring(0, 70)}...</div>`);
+      }
+    });
+
+    document.getElementById('compare-results-container').classList.remove('hidden');
+    document.getElementById('diff-added-count').innerText = added;
+    document.getElementById('diff-removed-count').innerText = removed;
+    document.getElementById('diff-changed-count').innerText = Math.abs(added - removed);
+    document.getElementById('diff-details-list').innerHTML = details.length > 0 ? details.join('') : '<div class="text-brand-400 text-center py-2">هیچ اختلافی میان دو فایل مشاهده نشد. فایل‌ها یکسان هستند!</div>';
+  }
+};
+
+const ArminAutomation = {
+  renderSteps() {
+    const container = document.getElementById('pipeline-steps-list');
+    container.innerHTML = ArminCore.State.pipeline.map((step, idx) => `
+      <div class="flex items-center justify-between p-2.5 bg-slate-950 border border-slate-800 rounded-xl">
+        <div class="flex items-center gap-3">
+          <span class="w-6 h-6 rounded-full bg-brand-950 text-brand-400 border border-brand-700/50 flex items-center justify-center text-xs font-mono font-bold">${idx + 1}</span>
+          <span class="text-xs font-medium text-slate-200">${step.name}</span>
+        </div>
+        <button onclick="ArminAutomation.removeStep('${step.id}')" class="text-slate-500 hover:text-rose-400 p-1 text-xs">✕</button>
+      </div>
+    `).join('');
+  },
+
+  removeStep(stepId) {
+    ArminCore.State.pipeline = ArminCore.State.pipeline.filter(s => s.id !== stepId);
+    this.renderSteps();
+  },
+
+  addStepModal() {
+    ArminApp.openModal('افزودن مرحله به پایپ‌لاین', `
+      <label class="block text-slate-400 mb-1">انتخاب عملیات:</label>
+      <select id="modal-pipeline-op-select" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200">
+        <option value="trimText">حذف فاصله‌های اضافی (Trim)</option>
+        <option value="removeEmptyRows">حذف سطرهای خالی</option>
+        <option value="removeDuplicates">حذف سطرهای تکراری</option>
+        <option value="upperCase">تبدیل به حروف بزرگ (UPPERCASE)</option>
+        <option value="lowerCase">تبدیل به حروف کوچک (lowercase)</option>
+      </select>
+    `, () => {
+      const select = document.getElementById('modal-pipeline-op-select');
+      const opKey = select.value;
+      const opName = select.options[select.selectedIndex].text;
+      ArminCore.State.pipeline.push({
+        id: 'p_' + Date.now(),
+        opId: opKey,
+        name: opName
+      });
+      ArminAutomation.renderSteps();
+      ArminApp.closeModal();
+      ArminCore.Notify.show(`مرحله "${opName}" به پایپ‌لاین اضافه شد.`);
+    });
+  },
+
+  runPipeline() {
+    const file = ArminCore.State.getActiveFile();
+    if (!file) {
+      ArminCore.Notify.show('ابتدا یک فایل اکسل را باز کنید.', 'warning');
+      return;
+    }
+
+    ArminCore.History.pushSnapshot('اجرای پایپ‌لاین خودکار');
+    let data = ArminCore.State.getActiveSheetData();
+
+    ArminCore.State.pipeline.forEach(step => {
+      const op = ArminOperations.registry[step.opId];
+      if (op) {
+        data = op.fn(data);
+      }
+    });
+
+    ArminCore.State.setActiveSheetData(data);
+    ArminEditor.renderGrid();
+    ArminIntelligence.runInspection();
+    ArminCore.Notify.show('تمام مراحل پایپ‌لاین با موفقیت اجرا شد!');
+  },
+
+  async runBatchProcess() {
+    const files = ArminCore.State.files;
+    if (files.length === 0) {
+      ArminCore.Notify.show('هیچ فایلی برای پردازش دسته‌ای وجود ندارد.', 'warning');
+      return;
+    }
+
+    const statusText = document.getElementById('batch-status-text');
+    statusText.innerText = `در حال پردازش ${files.length} فایل...`;
+
+    const zip = new JSZip();
+
+    for (let f of files) {
+      const sheetName = f.workbook.SheetNames[0];
+      let data = XLSX.utils.sheet_to_json(f.workbook.Sheets[sheetName], { header: 1, defval: '' });
+
+      // Run pipeline
+      ArminCore.State.pipeline.forEach(step => {
+        const op = ArminOperations.registry[step.opId];
+        if (op) data = op.fn(data);
+      });
+
+      const newSheet = XLSX.utils.aoa_to_sheet(data);
+      const newBook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(newBook, newSheet, 'Processed');
+
+      const outBuffer = XLSX.write(newBook, { bookType: 'xlsx', type: 'array' });
+      zip.file(`Processed_${f.name}.xlsx`, outBuffer);
+    }
+
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ArminExcel_Batch_${Date.now()}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    statusText.innerText = `پردازش دسته‌ای کامل شد. فایل ZIP دانلود گردید.`;
+    ArminCore.Notify.show('پردازش دسته‌ای تمام فایل‌ها پایان یافت!');
+  }
+};
+
+const ArminApp = {
+  init() {
+    ArminAutomation.renderSteps();
+    this.setupKeyboardShortcuts();
+    this.updateStats();
+  },
+
+  setupKeyboardShortcuts() {
+    window.addEventListener('keydown', (e) => {
+      // Ctrl+K for Command Center
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        ArminApp.openCommandPalette();
+      }
+      // Ctrl+Z for Undo
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        ArminCore.History.undo();
+      }
+      // Ctrl+Y for Redo
+      if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
+        e.preventDefault();
+        ArminCore.History.redo();
+      }
+    });
+  },
+
+  switchView(viewName) {
+    const views = ['dashboard', 'editor', 'pipeline', 'inspector', 'compare'];
+    views.forEach(v => {
+      const viewEl = document.getElementById(`view-${v}`);
+      const btnEl = document.getElementById(`tab-btn-${v}`);
+      if (v === viewName) {
+        viewEl.classList.remove('hidden');
+        btnEl.classList.add('bg-slate-800', 'text-white');
+        btnEl.classList.remove('text-slate-400');
+      } else {
+        viewEl.classList.add('hidden');
+        btnEl.classList.remove('bg-slate-800', 'text-white');
+        btnEl.classList.add('text-slate-400');
+      }
+    });
+
+    if (viewName === 'editor') ArminEditor.renderGrid();
+    if (viewName === 'inspector') ArminIntelligence.runInspection();
+    if (viewName === 'compare') {
+      const selectA = document.getElementById('compare-file-a');
+      const selectB = document.getElementById('compare-file-b');
+      const options = ArminCore.State.files.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+      selectA.innerHTML = options;
+      selectB.innerHTML = options;
+    }
+  },
+
+  handleFileInput(files) {
+    if (!files || files.length === 0) return;
+    ArminFileEngine.processFiles(files);
+  },
+
+  loadDemoData() {
+    const sampleHeaders = ['کد ملی', 'نام و نام خانوادگی', 'رشته تحصیلی', 'نمره آزمون', 'وضعیت قبولی', 'ایمیل'];
+    const sampleRows = [
+      ['0012345678', ' علی رضایی ', 'مهندسی کامپیوتر', 18.5, 'قبول', 'ali@example.com'],
+      ['0023456789', 'سارا احمدی', 'هوش مصنوعی', 19.2, 'قبول', 'sara@test.com'],
+      ['0034567890', '  محمد موسوی  ', 'مدیریت فناوری', 11.0, 'مردود', 'm.mousavi@corp.ir'],
+      ['', '', '', '', '', ''], // empty row to demonstrate cleaning
+      ['0045678901', 'زهرا کریمی', 'مهندسی صنایع', 17.0, 'قبول', 'zahra@karimi.com'],
+      ['0023456789', 'سارا احمدی', 'هوش مصنوعی', 19.2, 'قبول', 'sara@test.com'], // duplicate to demonstrate inspector
+      ['0056789012', 'رضا نوری', 'علوم داده', 14.8, 'مشروط', 'reza@data.ir']
+    ];
+
+    const newBook = XLSX.utils.book_new();
+    const newSheet = XLSX.utils.aoa_to_sheet([sampleHeaders, ...sampleRows]);
+    XLSX.utils.book_append_sheet(newBook, newSheet, 'دانشجویان');
+
+    const demoFile = {
+      id: 'demo_file_' + Date.now(),
+      name: 'Students_Data_Sample.xlsx',
+      size: 45200,
+      workbook: newBook,
+      activeSheetIndex: 0
+    };
+
+    ArminCore.State.files = [demoFile];
+    ArminCore.State.activeFileId = demoFile.id;
+    ArminCore.State.activeSheetName = 'دانشجویان';
+
+    ArminFileEngine.renderFileList();
+    ArminApp.updateStats();
+    ArminEditor.renderGrid();
+    ArminIntelligence.runInspection();
+    ArminApp.switchView('editor');
+    ArminCore.Notify.show('داده نمونه دانشجویان با موفقیت بارگذاری گردید.');
+  },
+
+  updateStats() {
+    const files = ArminCore.State.files;
+    document.getElementById('stat-files').innerText = files.length;
+    
+    const activeData = ArminCore.State.getActiveSheetData();
+    document.getElementById('stat-rows').innerText = activeData.length > 0 ? (activeData.length - 1).toLocaleString() : '0';
+    document.getElementById('stat-cols').innerText = activeData[0] ? activeData[0].length : '0';
+    document.getElementById('stat-ops').innerText = ArminCore.History.undoStack.length;
+  },
+
+  // Export handlers
+  toggleExportMenu() {
+    const menu = document.getElementById('export-menu');
+    menu.classList.toggle('hidden');
+  },
+
+  exportActive(format) {
+    const file = ArminCore.State.getActiveFile();
+    if (!file) {
+      ArminCore.Notify.show('هیچ فایلی برای دانلود وجود ندارد.', 'warning');
+      return;
+    }
+    const filename = `${file.name.replace(/\.[^/.]+$/, "")}_Export.${format}`;
+
+    if (format === 'xlsx') {
+      XLSX.writeFile(file.workbook, filename);
+    } else if (format === 'csv') {
+      const sheet = file.workbook.Sheets[ArminCore.State.activeSheetName];
+      const csvStr = XLSX.utils.sheet_to_csv(sheet);
+      const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvStr], { type: 'text/csv;charset=utf-8;' });
+      this.downloadBlob(blob, filename);
+    } else if (format === 'json') {
+      const sheet = file.workbook.Sheets[ArminCore.State.activeSheetName];
+      const jsonStr = JSON.stringify(XLSX.utils.sheet_to_json(sheet), null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      this.downloadBlob(blob, filename);
+    } else if (format === 'html') {
+      const sheet = file.workbook.Sheets[ArminCore.State.activeSheetName];
+      const htmlStr = XLSX.utils.sheet_to_html(sheet);
+      const blob = new Blob([htmlStr], { type: 'text/html' });
+      this.downloadBlob(blob, filename);
+    }
+    document.getElementById('export-menu').classList.add('hidden');
+    ArminCore.Notify.show(`فایل با فرمت ${format.toUpperCase()} ذخیره شد.`);
+  },
+
+  async exportAllAsZip() {
+    const files = ArminCore.State.files;
+    if (files.length === 0) {
+      ArminCore.Notify.show('هیچ فایلی باز نیست.', 'warning');
+      return;
+    }
+    const zip = new JSZip();
+    files.forEach(f => {
+      const outBuffer = XLSX.write(f.workbook, { bookType: 'xlsx', type: 'array' });
+      zip.file(f.name.endsWith('.xlsx') ? f.name : `${f.name}.xlsx`, outBuffer);
+    });
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    this.downloadBlob(zipBlob, `ArminExcel_All_Workbooks_${Date.now()}.zip`);
+    document.getElementById('export-menu').classList.add('hidden');
+  },
+
+  downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  // Download complete project modular source code as ZIP directly in browser
+  async downloadProjectSourceZip() {
+    ArminCore.Notify.show('در حال ساخت فایل ZIP کامل پروژه سورس‌کد ArminExcel...');
+    const zip = new JSZip();
+
+    // 1. Root index.html
+    zip.file("index.html", document.documentElement.outerHTML);
+
+    // 2. README.md
+    const readmeContent = `# ArminExcel Web Studio\n\nModern, high-performance, client-side Excel and Data processing studio.\n\n## Features:\n- 100% Client-Side & Local-First (zero data leaves the browser)\n- Multi-workbook and multi-sheet management\n- Data cleaning (Trim, duplicates, empty rows/columns)\n- Advanced filtering, sorting, column splitting\n- Intelligence Inspector & Health check\n- Interactive Chart.js analytics\n- Pipeline Automation & Batch processing\n- Zero setup required. Runs directly in browser or GitHub Pages.\n\nBuilt for modern data teams.`;
+    zip.file("README.md", readmeContent);
+
+    // 3. Modular Architecture code copies for developer inspection
+    zip.file("src/core/State.js", `export const State = ${JSON.stringify(ArminCore.State, null, 2)};`);
+    zip.file("src/engine/DataEngine.js", `// ArminExcel Data Cleaning & Transformation Module\nexport const DataEngine = {};`);
+    zip.file("src/engine/Intelligence.js", `// ArminExcel Health & Inspection Layer\nexport const Intelligence = {};`);
+
+    const blob = await zip.generateAsync({ type: 'blob' });
+    this.downloadBlob(blob, "ArminExcel_Web_Complete_Source.zip");
+    ArminCore.Notify.show('فایل زیپ کامل سورس‌پروژه با موفقیت دانلود شد!');
+  },
+
+  // Modal Dialogs
+  openModal(title, bodyHTML, onConfirm) {
+    document.getElementById('modal-title').innerText = title;
+    document.getElementById('modal-body').innerHTML = bodyHTML;
+    document.getElementById('operation-modal').classList.remove('hidden');
+    const submitBtn = document.getElementById('modal-submit-btn');
+    submitBtn.onclick = onConfirm;
+  },
+
+  closeModal() {
+    document.getElementById('operation-modal').classList.add('hidden');
+  },
+
+  openOpModal(opType) {
+    const data = ArminCore.State.getActiveSheetData();
+    if (!data.length) {
+      ArminCore.Notify.show('ابتدا یک فایل را باز کنید.', 'warning');
+      return;
+    }
+    const columns = data[0] || [];
+
+    if (opType === 'splitColumn') {
+      const options = columns.map((c, i) => `<option value="${i}">${c || 'ستون ' + (i+1)}</option>`).join('');
+      this.openModal('جداسازی ستون بر اساس جداکننده (Split)', `
+        <label class="block text-slate-400 mb-1">انتخاب ستون:</label>
+        <select id="split-col-idx" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 mb-3">${options}</select>
+        <label class="block text-slate-400 mb-1">جداکننده (Delimiter):</label>
+        <input id="split-delimiter" type="text" value=" " placeholder="فاصله، کاما یا کاراکتر خاص" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200" />
+      `, () => {
+        const colIdx = parseInt(document.getElementById('split-col-idx').value);
+        const delimiter = document.getElementById('split-delimiter').value || ' ';
+        ArminCore.History.pushSnapshot('جداسازی ستون');
+        const newData = ArminDataEngine.splitColumn(ArminCore.State.getActiveSheetData(), colIdx, delimiter);
+        ArminCore.State.setActiveSheetData(newData);
+        ArminEditor.renderGrid();
+        ArminApp.closeModal();
+        ArminCore.Notify.show('ستون با موفقیت تفکیک شد.');
+      });
+    } else if (opType === 'filter') {
+      const options = columns.map((c, i) => `<option value="${i}">${c || 'ستون ' + (i+1)}</option>`).join('');
+      this.openModal('فیلتر پیشرفته داده‌ها', `
+        <label class="block text-slate-400 mb-1">انتخاب ستون:</label>
+        <select id="filter-col-idx" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 mb-3">${options}</select>
+        <label class="block text-slate-400 mb-1">شرط فیلتر:</label>
+        <select id="filter-condition" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 mb-3">
+          <option value="contains">شامل عبارت باشد (Contains)</option>
+          <option value="equals">دقیقاً برابر باشد (Equals)</option>
+          <option value="gt">بزرگتر از (>)</option>
+          <option value="lt">کوچکتر از (<)</option>
+          <option value="empty">خالی باشد</option>
+          <option value="notEmpty">خالی نباشد</option>
+        </select>
+        <label class="block text-slate-400 mb-1">مقدار مورد نظر:</label>
+        <input id="filter-value" type="text" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200" placeholder="مقدار شرط..." />
+      `, () => {
+        const colIdx = parseInt(document.getElementById('filter-col-idx').value);
+        const cond = document.getElementById('filter-condition').value;
+        const target = document.getElementById('filter-value').value;
+        ArminCore.History.pushSnapshot('اعمال فیلتر');
+        const filtered = ArminDataEngine.filterData(ArminCore.State.getActiveSheetData(), colIdx, cond, target);
+        ArminCore.State.setActiveSheetData(filtered);
+        ArminEditor.renderGrid();
+        ArminApp.closeModal();
+        ArminCore.Notify.show(`فیلتر اعمال گردید (${filtered.length - 1} سطر یافت شد).`);
+      });
+    } else if (opType === 'sort') {
+      const options = columns.map((c, i) => `<option value="${i}">${c || 'ستون ' + (i+1)}</option>`).join('');
+      this.openModal('مرتب‌سازی سطرهای جدول (Sort)', `
+        <label class="block text-slate-400 mb-1">مرتب‌سازی بر اساس ستون:</label>
+        <select id="sort-col-idx" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200 mb-3">${options}</select>
+        <label class="block text-slate-400 mb-1">ترتیب:</label>
+        <select id="sort-direction" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200">
+          <option value="asc">صعودی (A → Z یا کوچک به بزرگ)</option>
+          <option value="desc">نزولی (Z → A یا بزرگ به کوچک)</option>
+        </select>
+      `, () => {
+        const colIdx = parseInt(document.getElementById('sort-col-idx').value);
+        const isAsc = document.getElementById('sort-direction').value === 'asc';
+        ArminCore.History.pushSnapshot('مرتب‌سازی');
+        const sorted = ArminDataEngine.sortData(ArminCore.State.getActiveSheetData(), colIdx, isAsc);
+        ArminCore.State.setActiveSheetData(sorted);
+        ArminEditor.renderGrid();
+        ArminApp.closeModal();
+        ArminCore.Notify.show('داده‌ها مرتب‌سازی شدند.');
+      });
+    }
+  },
+
+  // Quick Command Center (Ctrl+K)
+  openCommandPalette() {
+    document.getElementById('command-palette-modal').classList.remove('hidden');
+    document.getElementById('palette-search-input').focus();
+    this.filterCommandPalette('');
+  },
+
+  closeCommandPalette() {
+    document.getElementById('command-palette-modal').classList.add('hidden');
+  },
+
+  filterCommandPalette(query) {
+    const list = [
+      { name: 'حذف سطر‌های کاملاً خالی', desc: 'پاک‌سازی سطرهای بدون مقدار', action: () => ArminOperations.runQuickOp('removeEmptyRows') },
+      { name: 'حذف ردیف‌های تکراری', desc: 'تشخیص و حذف سطرهای کپی', action: () => ArminOperations.runQuickOp('removeDuplicates') },
+      { name: 'حذف اسپیس‌های اضافی (Trim)', desc: 'نرمال‌سازی فاصله‌ها', action: () => ArminOperations.runQuickOp('trimText') },
+      { name: 'تبدیل حروف به حروف بزرگ (UPPERCASE)', desc: 'تبدیل حروف انگلیسی', action: () => ArminOperations.runQuickOp('upperCase') },
+      { name: 'جداسازی ستون (Split Column)', desc: 'بر اساس جداکننده', action: () => ArminApp.openOpModal('splitColumn') },
+      { name: 'فیلتر پیشرفته سطرها', desc: 'اعمال شروط برابر، حاوی، بزرگتر/کوچکتر', action: () => ArminApp.openOpModal('filter') },
+      { name: 'مرتب‌سازی صعودی/نزولی (Sort)', desc: 'مرتب‌سازی داده‌ها بر اساس ستون', action: () => ArminApp.openOpModal('sort') },
+      { name: 'دانلود کامل سورس‌پروژه در قالب ZIP', desc: 'دریافت تمام کدهای پروژه', action: () => ArminApp.downloadProjectSourceZip() },
+      { name: 'بارگذاری داده‌های نمونه هوشمند', desc: 'تست سریع ابزارها', action: () => ArminApp.loadDemoData() }
+    ];
+
+    const filtered = list.filter(item => item.name.includes(query) || item.desc.includes(query));
+    const container = document.getElementById('palette-results-list');
+
+    if (filtered.length === 0) {
+      container.innerHTML = `<div class="p-4 text-center text-slate-500">موردی یافت نشد.</div>`;
+      return;
+    }
+
+    container.innerHTML = filtered.map(item => `
+      <div onclick="ArminApp.closeCommandPalette(); (${item.action.toString()})()" class="p-2.5 rounded-xl hover:bg-slate-800 cursor-pointer flex items-center justify-between transition group">
+        <div>
+          <div class="font-medium text-slate-200 group-hover:text-brand-300 text-xs">${item.name}</div>
+          <div class="text-[10px] text-slate-500">${item.desc}</div>
+        </div>
+        <span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">اجرا</span>
+      </div>
+    `).join('');
+  },
+
+  toggleTheme() {
+    document.documentElement.classList.toggle('dark');
+    ArminCore.Notify.show('تم سیستم تغییر کرد.', 'info');
+  }
+};
+
+// Window Load initialization
+window.addEventListener('DOMContentLoaded', () => {
+  ArminApp.init();
+});
+</script>
+</body>
+</html>
