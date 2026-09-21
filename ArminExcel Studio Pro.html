@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ArminExcel Studio Pro</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              100: '#d1fae5',
+              400: '#34d399',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b'
+            },
+            surface: {
+              50: '#f8fafc',
+              100: '#f1f5f9',
+              200: '#e2e8f0',
+              300: '#cbd5e1',
+              700: '#334155',
+              800: '#1e293b',
+              850: '#172033',
+              900: '#0f172a',
+              950: '#090d16'
+            }
+          },
+          fontFamily: {
+            sans: ['Vazirmatn', 'Inter', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts: Vazirmatn & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- SheetJS (XLSX) Library -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Chart.js for Data Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      font-family: 'Vazirmatn', 'Inter', sans-serif;
+      user-select: none;
+    }
+    input, textarea, [contenteditable="true"] {
+      user-select: text;
+    }
+    /* Custom Sleek Scrollbars */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.3);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.5);
+    }
+    .grid-cell:focus {
+      outline: 2px solid #10b981 !important;
+      outline-offset: -1px;
+      z-index: 10;
+    }
+    .fade-in {
+      animation: fadeIn 0.18s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media print {
+      header, aside, footer, .no-print, #editor-toolbar, #formula-bar-container, #sheet-tabs-container {
+        display: none !important;
+      }
+      #view-editor, #grid-scroll-container, #spreadsheet-table {
+        overflow: visible !important;
+        width: 100% !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 dark:bg-surface-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col antialiased selection:bg-brand-500 selection:text-white transition-colors duration-200">
+
+  <header class="h-14 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-surface-900/95 backdrop-blur px-3 md:px-4 flex items-center justify-between shrink-0 z-30 shadow-sm">
+    <div class="flex items-center gap-2 md:gap-3 overflow-hidden">
+      <!-- Mobile Sidebar Drawer Trigger -->
+      <button onclick="ArminApp.toggleSidebar(true)" class="md:hidden p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-brand-500 transition" title="منوی فایل‌ها">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+
+      <!-- App Brand Logo -->
+      <div class="flex items-center gap-2 bg-gradient-to-r from-brand-600 to-emerald-500 text-white px-2.5 py-1.5 rounded-xl font-bold text-xs md:text-sm tracking-wide shadow-md shrink-0">
+        <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <span>ArminExcel</span>
+        <span class="text-[9px] bg-black/20 px-1 py-0.5 rounded text-emerald-100 font-mono">PRO</span>
+      </div>
+
+      <!-- Navigation Tabs (Horizontal Scrollable on mobile) -->
+      <nav class="flex items-center gap-1 bg-slate-100 dark:bg-slate-900/70 p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs overflow-x-auto">
+        <button id="tab-btn-editor" onclick="ArminApp.switchView('editor')" class="px-2.5 py-1 rounded-lg font-medium transition text-white bg-brand-600 shrink-0">استودیو اکسل</button>
+        <button id="tab-btn-dashboard" onclick="ArminApp.switchView('dashboard')" class="px-2.5 py-1 rounded-lg font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 shrink-0">داشبورد</button>
+        <button id="tab-btn-tools" onclick="ArminApp.switchView('tools')" class="px-2.5 py-1 rounded-lg font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 shrink-0">ابزارهای داده</button>
+        <button id="tab-btn-inspector" onclick="ArminApp.switchView('inspector')" class="px-2.5 py-1 rounded-lg font-medium transition text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 shrink-0">آنالیز و آمار</button>
+      </nav>
+    </div>
+
+    <div class="flex items-center gap-1.5 md:gap-2">
+      <!-- Undo / Redo Buttons -->
+      <div class="hidden sm:flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700/60 p-0.5">
+        <button onclick="ArminCore.History.undo()" title="Undo (Ctrl+Z)" class="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a5 5 0 015 5v2M3 10l6-6m-6 6l6 6"/></svg>
+        </button>
+        <button onclick="ArminCore.History.redo()" title="Redo (Ctrl+Y)" class="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-600 dark:text-slate-300 transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10H11a5 5 0 00-5 5v2m15-7l-6-6m6 6l-6 6"/></svg>
+        </button>
+      </div>
+
+      <!-- Theme Switcher (Light / Dark Mode) -->
+      <button onclick="ArminApp.toggleTheme()" class="p-1.5 md:p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 transition shadow-sm" title="تغییر تم (روشن / تاریک)">
+        <!-- Sun Icon (Light Mode Active) -->
+        <svg id="theme-icon-sun" class="w-4 h-4 text-amber-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 9H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        <!-- Moon Icon (Dark Mode Active) -->
+        <svg id="theme-icon-moon" class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+      </button>
+
+      <!-- Export Trigger Dropdown -->
+      <div class="relative">
+        <button onclick="ArminApp.toggleExportMenu()" class="flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          <span class="hidden sm:inline">دانلود خروجی</span>
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div id="export-menu" class="hidden absolute left-0 mt-2 w-44 bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-1 z-50 text-xs text-slate-700 dark:text-slate-200">
+          <button onclick="ArminApp.exportActive('xlsx')" class="w-full text-right px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between">
+            <span>اکسل (.xlsx)</span>
+            <span class="text-emerald-500 font-mono text-[10px]">XLSX</span>
+          </button>
+          <button onclick="ArminApp.exportActive('csv')" class="w-full text-right px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between">
+            <span>فایل CSV استاندارد</span>
+            <span class="text-blue-500 font-mono text-[10px]">CSV</span>
+          </button>
+          <button onclick="ArminApp.exportActive('json')" class="w-full text-right px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between">
+            <span>داده‌های JSON</span>
+            <span class="text-amber-500 font-mono text-[10px]">JSON</span>
+          </button>
+          <hr class="border-slate-200 dark:border-slate-800 my-1">
+          <button onclick="window.print()" class="w-full text-right px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-between text-brand-600 dark:text-brand-400 font-medium">
+            <span>چاپ / خروجی PDF</span>
+            <span class="font-mono text-[10px]">PRINT</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex-1 flex overflow-hidden relative">
+    
+    <!-- Mobile Backdrop -->
+    <div id="sidebar-backdrop" onclick="ArminApp.toggleSidebar(false)" class="hidden fixed inset-0 bg-black/60 z-30 md:hidden backdrop-blur-xs"></div>
+
+    <!-- Sidebar / File Explorer & Tools -->
+    <aside id="app-sidebar" class="fixed md:static inset-y-0 right-0 z-40 w-72 bg-white dark:bg-surface-900 border-l border-slate-200 dark:border-slate-800 flex flex-col shrink-0 transform translate-x-full md:translate-x-0 transition-transform duration-300 shadow-xl md:shadow-none">
+      <div class="p-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-200">
+          <svg class="w-4 h-4 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <span>فایل‌های باز (Workspace)</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <span id="file-count-badge" class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full text-[10px] font-mono">0 فایل</span>
+          <button onclick="ArminApp.toggleSidebar(false)" class="md:hidden p-1 text-slate-400 hover:text-slate-600">✕</button>
+        </div>
+      </div>
+
+      <!-- Quick Upload Dropzone -->
+      <div class="p-2.5">
+        <label for="file-upload-input" class="cursor-pointer border-2 border-dashed border-slate-300 dark:border-slate-700/80 hover:border-brand-500 rounded-xl p-3 flex flex-col items-center justify-center text-center transition group bg-slate-50 dark:bg-slate-900/40">
+          <svg class="w-6 h-6 text-slate-400 group-hover:text-brand-500 mb-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 group-hover:text-brand-500">انتخاب یا رهاسازی فایل</span>
+          <span class="text-[10px] text-slate-400 mt-0.5">XLSX, XLS, CSV, JSON</span>
+          <input id="file-upload-input" type="file" multiple accept=".xlsx, .xls, .csv, .tsv, .json" class="hidden" onchange="ArminApp.handleFileInput(this.files)" />
+        </label>
+      </div>
+
+      <!-- Loaded File List Container -->
+      <div class="flex-1 overflow-y-auto px-2 space-y-1" id="workspace-file-list">
+        <div class="p-6 text-center text-slate-400 dark:text-slate-500 text-xs">
+          هیچ فایلی باز نشده است. یک فایل اضافه کنید یا دکمه زیر را برای لود داده نمونه بزنید.
+        </div>
+      </div>
+
+      <!-- Load Sample Demo Button -->
+      <div class="p-2.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40">
+        <button onclick="ArminApp.loadDemoData()" class="w-full py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-700 transition flex items-center justify-center gap-1.5 shadow-sm">
+          <svg class="w-3.5 h-3.5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <span>بارگذاری داده‌های نمونه هوشمند</span>
+        </button>
+      </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden bg-slate-100 dark:bg-surface-950">
+
+      <!-- VIEW: EXCEL STUDIO GRID EDITOR (DEFAULT) -->
+      <section id="view-editor" class="flex-1 flex flex-col overflow-hidden">
+        
+        <!-- Interactive Formatting Toolbar (Ribbon) -->
+        <div id="editor-toolbar" class="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-surface-900 px-3 py-1.5 flex items-center justify-between gap-2 overflow-x-auto text-xs shrink-0 select-none shadow-xs">
+          <!-- Text Styling & Formatting Group -->
+          <div class="flex items-center gap-1 shrink-0">
+            <!-- Bold -->
+            <button onclick="ArminEditor.applyFormat('bold')" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded font-black text-slate-700 dark:text-slate-200" title="بولد / پررنگ (Bold)">
+              B
+            </button>
+            <!-- Italic -->
+            <button onclick="ArminEditor.applyFormat('italic')" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded italic font-serif text-slate-700 dark:text-slate-200" title="ایتالیک / کج (Italic)">
+              I
+            </button>
+            <!-- Separator -->
+            <div class="h-4 w-[1px] bg-slate-300 dark:bg-slate-700 mx-1"></div>
+
+            <!-- Alignment Group -->
+            <button onclick="ArminEditor.applyFormat('align-right')" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-700 dark:text-slate-200" title="راست‌چین">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M10 12h10M6 18h14"/></svg>
+            </button>
+            <button onclick="ArminEditor.applyFormat('align-center')" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-700 dark:text-slate-200" title="وسط‌چین">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M7 12h10M5 18h14"/></svg>
+            </button>
+            <button onclick="ArminEditor.applyFormat('align-left')" class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-700 dark:text-slate-200" title="چپ‌چین">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h14"/></svg>
+            </button>
+            
+            <div class="h-4 w-[1px] bg-slate-300 dark:bg-slate-700 mx-1"></div>
+
+            <!-- Number Formatting (3-digit commas, currency) -->
+            <button onclick="ArminEditor.formatNumbers('comma')" class="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded font-mono text-[11px]" title="جداکننده ۳ رقمی (1,000,000)">
+              ,۰۰۰
+            </button>
+            <button onclick="ArminEditor.formatNumbers('percent')" class="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded font-mono text-[11px]" title="درصد (%)">
+              %
+            </button>
+
+            <div class="h-4 w-[1px] bg-slate-300 dark:bg-slate-700 mx-1"></div>
+
+            <!-- Add Row & Column -->
+            <button onclick="ArminEditor.addRow()" class="px-2.5 py-1 bg-brand-50 dark:bg-brand-950/50 hover:bg-brand-100 text-brand-700 dark:text-brand-400 rounded border border-brand-200 dark:border-brand-800/40 font-medium flex items-center gap-1">
+              + سطر
+            </button>
+            <button onclick="ArminEditor.addColumn()" class="px-2.5 py-1 bg-brand-50 dark:bg-brand-950/50 hover:bg-brand-100 text-brand-700 dark:text-brand-400 rounded border border-brand-200 dark:border-brand-800/40 font-medium flex items-center gap-1">
+              + ستون
+            </button>
+            <button onclick="ArminApp.openFindReplaceModal()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded flex items-center gap-1">
+              <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <span>جستجو و جایگزینی</span>
+            </button>
+          </div>
+
+          <!-- Quick Cell Count Status -->
+          <div class="flex items-center gap-2 shrink-0">
+            <span id="active-sheet-dimensions" class="text-[11px] text-slate-500 font-mono">0 سطر × 0 ستون</span>
+          </div>
+        </div>
+
+        <!-- Formula Bar with Live Calculation Engine -->
+        <div id="formula-bar-container" class="h-9 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-surface-950 px-3 flex items-center gap-2 shrink-0">
+          <span id="selected-cell-coord" class="text-xs font-mono font-bold text-brand-600 dark:text-brand-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-0.5 rounded shadow-xs">A1</span>
+          <span class="text-slate-400 text-xs font-serif font-bold italic">fx |</span>
+          <input id="formula-bar-input" onkeydown="if(event.key==='Enter') ArminEditor.commitFormulaInput()" oninput="ArminEditor.onFormulaInput(this.value)" type="text" class="flex-1 bg-transparent text-xs text-slate-800 dark:text-slate-200 font-mono focus:outline-none placeholder:text-slate-400" placeholder="مقدار سلول یا فرمول (مانند SUM(A1:A5)= یا مقدار متنی)..." />
+        </div>
+
+        <div class="flex-1 overflow-auto bg-white dark:bg-slate-950 relative" id="grid-scroll-container">
+          <table id="spreadsheet-table" class="border-collapse text-xs text-slate-800 dark:text-slate-200 w-full select-text min-w-full">
+            <thead class="sticky top-0 bg-slate-100 dark:bg-surface-900 z-10 shadow-xs border-b border-slate-200 dark:border-slate-800" id="grid-thead">
+              <!-- Dynamically Populated Columns -->
+            </thead>
+            <tbody id="grid-tbody" class="divide-y divide-slate-200 dark:divide-slate-800/80">
+              <!-- Dynamically Populated Rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Sheet Selector Tabs Footer -->
+        <div id="sheet-tabs-container" class="h-9 border-t border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-surface-900 px-3 flex items-center justify-between shrink-0">
+          <div class="flex items-center gap-1 overflow-x-auto" id="sheet-tabs-list"></div>
+          <button onclick="ArminEditor.addSheet()" class="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-slate-500 hover:text-brand-500 transition" title="افزودن شیت جدید">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- VIEW: DASHBOARD -->
+      <section id="view-dashboard" class="hidden flex-1 overflow-y-auto p-4 md:p-6 space-y-5">
+        <div class="max-w-5xl mx-auto space-y-5">
+          <!-- Hero Card -->
+          <div class="relative overflow-hidden bg-gradient-to-r from-emerald-600 via-brand-600 to-teal-700 text-white rounded-2xl p-5 md:p-7 shadow-lg">
+            <div class="max-w-xl">
+              <span class="text-[11px] font-bold uppercase tracking-wider bg-black/20 px-2.5 py-1 rounded-full text-emerald-100">پردازش محلی و کاملاً خصوصی</span>
+              <h1 class="text-xl md:text-3xl font-extrabold mt-2">استودیو هوشمند ArminExcel Web</h1>
+              <p class="text-xs md:text-sm text-emerald-50 mt-2 leading-relaxed">
+                ویرایش فوق‌العاده سریع فایل‌های بزرگ اکسل بدون ارسال حتی یک بایت به سرور. اصلاح داده‌های فارسی، کدهای ملی، فیلتر و محاسبات ریاضی پیشرفته.
+              </p>
+            </div>
+          </div>
+
+          <!-- Quick Metrics -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl shadow-xs">
+              <div class="text-slate-500 dark:text-slate-400 text-xs">تعداد فایل‌های باز</div>
+              <div id="stat-files" class="text-xl font-bold text-slate-800 dark:text-white mt-1">0</div>
+            </div>
+            <div class="bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl shadow-xs">
+              <div class="text-slate-500 dark:text-slate-400 text-xs">تعداد ردیف‌های شیت</div>
+              <div id="stat-rows" class="text-xl font-bold text-brand-600 dark:text-brand-400 mt-1">0</div>
+            </div>
+            <div class="bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl shadow-xs">
+              <div class="text-slate-500 dark:text-slate-400 text-xs">تعداد ستون‌ها</div>
+              <div id="stat-cols" class="text-xl font-bold text-blue-600 dark:text-blue-400 mt-1">0</div>
+            </div>
+            <div class="bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl shadow-xs">
+              <div class="text-slate-500 dark:text-slate-400 text-xs">عملیات قابل بازگشت</div>
+              <div id="stat-ops" class="text-xl font-bold text-amber-600 dark:text-amber-400 mt-1">0</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: IRAN & ADVANCED DATA TOOLS -->
+      <section id="view-tools" class="hidden flex-1 overflow-y-auto p-4 md:p-6 space-y-5">
+        <div class="max-w-4xl mx-auto space-y-4">
+          <div>
+            <h2 class="text-base md:text-lg font-bold text-slate-800 dark:text-white">ابزارهای تخصصی داده و پاک‌سازی هوشمند</h2>
+            <p class="text-xs text-slate-500 mt-0.5">اصلاح کدهای ملی، استانداردسازی شماره‌های همراه و حذف سریع خطاهای رایج در فایل‌های فارسی.</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <!-- Tool 1: Persian Digits to English -->
+            <button onclick="ArminIranToolkit.convertPersianDigits()" class="p-4 bg-white dark:bg-surface-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl text-right transition group shadow-xs">
+              <div class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2 font-bold font-mono">
+                ۱۲→12
+              </div>
+              <div class="font-bold text-xs text-slate-800 dark:text-slate-200 group-hover:text-brand-600">اعداد فارسی به انگلیسی</div>
+              <div class="text-[11px] text-slate-500 mt-1">جهت فعال شدن محاسبات و توابع ریاضی</div>
+            </button>
+
+            <!-- Tool 2: National ID Fixer -->
+            <button onclick="ArminIranToolkit.fixNationalIDs()" class="p-4 bg-white dark:bg-surface-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl text-right transition group shadow-xs">
+              <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-2 font-bold font-mono text-xs">
+                00...
+              </div>
+              <div class="font-bold text-xs text-slate-800 dark:text-slate-200 group-hover:text-blue-500">اصلاح صفر کد ملی (۱۰ رقمی)</div>
+              <div class="text-[11px] text-slate-500 mt-1">تکمیل صفرهای حذف‌شده در اکسل</div>
+            </button>
+
+            <!-- Tool 3: Phone Standardizer -->
+            <button onclick="ArminIranToolkit.standardizePhones()" class="p-4 bg-white dark:bg-surface-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl text-right transition group shadow-xs">
+              <div class="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2 font-bold font-mono text-xs">
+                09..
+              </div>
+              <div class="font-bold text-xs text-slate-800 dark:text-slate-200 group-hover:text-amber-500">استانداردسازی شماره موبایل</div>
+              <div class="text-[11px] text-slate-500 mt-1">یکپارچه‌سازی به فرمت ۰۹xxxxxxxx</div>
+            </button>
+
+            <!-- Tool 4: Remove Empty Rows -->
+            <button onclick="ArminOperations.runQuickOp('removeEmptyRows')" class="p-4 bg-white dark:bg-surface-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl text-right transition group shadow-xs">
+              <div class="w-8 h-8 rounded-lg bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </div>
+              <div class="font-bold text-xs text-slate-800 dark:text-slate-200 group-hover:text-rose-500">حذف سطرهای خالی</div>
+              <div class="text-[11px] text-slate-500 mt-1">پاک‌سازی تمام ردیف‌های بدون دیتا</div>
+            </button>
+
+            <!-- Tool 5: Remove Duplicates -->
+            <button onclick="ArminOperations.runQuickOp('removeDuplicates')" class="p-4 bg-white dark:bg-surface-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl text-right transition group shadow-xs">
+              <div class="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+              </div>
+              <div class="font-bold text-xs text-slate-800 dark:text-slate-200 group-hover:text-purple-500">حذف سطرهای تکراری</div>
+              <div class="text-[11px] text-slate-500 mt-1">تشخیص و پالایش رکوردهای تکراری</div>
+            </button>
+
+            <!-- Tool 6: Trim Text -->
+            <button onclick="ArminOperations.runQuickOp('trimText')" class="p-4 bg-white dark:bg-surface-900 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl text-right transition group shadow-xs">
+              <div class="w-8 h-8 rounded-lg bg-teal-100 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400 flex items-center justify-center mb-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879a3 3 0 11-4.242-4.242L10.758 4.758a3 3 0 114.242 4.242L12 12z"/></svg>
+              </div>
+              <div class="font-bold text-xs text-slate-800 dark:text-slate-200 group-hover:text-teal-500">حذف فاصله‌های اضافی (Trim)</div>
+              <div class="text-[11px] text-slate-500 mt-1">پاک کردن اسپیس‌های ابتدا و انتهای متن</div>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: INSPECTOR & ANALYTICS -->
+      <section id="view-inspector" class="hidden flex-1 overflow-y-auto p-4 md:p-6 space-y-5">
+        <div class="max-w-4xl mx-auto space-y-5">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-base md:text-lg font-bold text-slate-800 dark:text-white">آنالیز آماری و نمودار داده‌ها</h2>
+              <p class="text-xs text-slate-500 mt-0.5">محاسبه مجموع، میانگین، کمترین و بیشترین مقدار ستون‌ها همراه با رسم نمودار.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-xs text-slate-500">انتخاب ستون:</label>
+              <select id="analyzer-col-select" onchange="ArminIntelligence.updateStats(this.value)" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs rounded-lg px-2 py-1"></select>
+            </div>
+          </div>
+
+          <!-- Calculated Stats Grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 p-3 rounded-xl text-center shadow-xs">
+              <div class="text-[10px] text-slate-500">مجموع (SUM)</div>
+              <div id="stat-sum" class="text-sm md:text-base font-bold text-emerald-600 dark:text-emerald-400 mt-1">-</div>
+            </div>
+            <div class="bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 p-3 rounded-xl text-center shadow-xs">
+              <div class="text-[10px] text-slate-500">میانگین (AVG)</div>
+              <div id="stat-avg" class="text-sm md:text-base font-bold text-blue-600 dark:text-blue-400 mt-1">-</div>
+            </div>
+            <div class="bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 p-3 rounded-xl text-center shadow-xs">
+              <div class="text-[10px] text-slate-500">حداقل (MIN)</div>
+              <div id="stat-min" class="text-sm md:text-base font-bold text-amber-600 dark:text-amber-400 mt-1">-</div>
+            </div>
+            <div class="bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 p-3 rounded-xl text-center shadow-xs">
+              <div class="text-[10px] text-slate-500">حداکثر (MAX)</div>
+              <div id="stat-max" class="text-sm md:text-base font-bold text-purple-600 dark:text-purple-400 mt-1">-</div>
+            </div>
+          </div>
+
+          <!-- Visual Chart Canvas -->
+          <div class="h-64 bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 flex items-center justify-center shadow-xs">
+            <canvas id="analytics-chart-canvas"></canvas>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <footer class="h-7 bg-white dark:bg-surface-900 border-t border-slate-200 dark:border-slate-800 px-3 flex items-center justify-between text-[11px] text-slate-500 shrink-0 z-20">
+    <div class="flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+      <span id="status-task-label">آماده</span>
+      <span>•</span>
+      <span id="status-active-file" class="truncate max-w-[150px] sm:max-w-xs">بدون فایل</span>
+    </div>
+    <div class="font-mono text-[10px]">
+      100% آفلاین • بدون سرور
+    </div>
+  </footer>
+
+  <!-- Find & Replace Modal -->
+  <div id="find-replace-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-surface-900 border border-slate-200 dark:border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl p-4 space-y-3 fade-in text-xs">
+      <div class="flex items-center justify-between font-bold text-slate-800 dark:text-white">
+        <span>جستجو و جایگزینی در شیت</span>
+        <button onclick="ArminApp.closeFindReplaceModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+      <div>
+        <label class="text-slate-500 mb-1 block">عبارت مورد جستجو:</label>
+        <input id="find-input" type="text" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-800 dark:text-slate-200" placeholder="مثال: تهران" />
+      </div>
+      <div>
+        <label class="text-slate-500 mb-1 block">جایگزین شود با:</label>
+        <input id="replace-input" type="text" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-slate-800 dark:text-slate-200" placeholder="مثال: پایتخت" />
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="ArminApp.closeFindReplaceModal()" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg">انصراف</button>
+        <button onclick="ArminEditor.executeFindReplace()" class="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-semibold">جایگزینی همه</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-9 left-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <script>
+/**
+ * ARMINEXCEL WEB STUDIO - ARCHITECTURE
+ * 1. ArminCore: EventBus, State, History (Undo/Redo), Notifications
+ * 2. ArminFileEngine: File loading, Multi-sheet management, Clean export (No ZIP)
+ * 3. ArminEditor: Formula evaluation, Cell editing, Cell styling, Dynamic grid
+ * 4. ArminIranToolkit: National ID fixer, Persian digits, Phone normalizer
+ * 5. ArminApp: UI orchestration, Theme management, Navigation
+ */
+
+const ArminCore = {
+  State: {
+    files: [],
+    activeFileId: null,
+    activeSheetName: null,
+    selectedCell: { row: 1, col: 0 },
+    cellStyles: {}, // format: 'sheetName_r_c': { bold, italic, align, comma, percent }
+
+    getActiveFile() {
+      return this.files.find(f => f.id === this.activeFileId) || null;
+    },
+
+    getActiveSheetData() {
+      const file = this.getActiveFile();
+      if (!file || !file.workbook) return [];
+      const sheetName = this.activeSheetName || file.workbook.SheetNames[0];
+      const sheet = file.workbook.Sheets[sheetName];
+      if (!sheet) return [];
+      return XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    },
+
+    setActiveSheetData(new2DArray) {
+      const file = this.getActiveFile();
+      if (!file || !file.workbook) return;
+      const sheetName = this.activeSheetName || file.workbook.SheetNames[0];
+      file.workbook.Sheets[sheetName] = XLSX.utils.aoa_to_sheet(new2DArray);
+    }
+  },
+
+  History: {
+    undoStack: [],
+    redoStack: [],
+    maxSize: 30,
+
+    pushSnapshot(desc = 'تغییر') {
+      const file = ArminCore.State.getActiveFile();
+      if (!file) return;
+      this.undoStack.push({
+        fileId: file.id,
+        sheetName: ArminCore.State.activeSheetName,
+        data: JSON.parse(JSON.stringify(ArminCore.State.getActiveSheetData())),
+        desc
+      });
+      if (this.undoStack.length > this.maxSize) this.undoStack.shift();
+      this.redoStack = [];
+      ArminApp.updateStats();
+    },
+
+    undo() {
+      if (this.undoStack.length === 0) {
+        ArminCore.Notify.show('موردی برای بازگشت وجود ندارد', 'info');
+        return;
+      }
+      const lastState = this.undoStack.pop();
+      const currentData = JSON.parse(JSON.stringify(ArminCore.State.getActiveSheetData()));
+      this.redoStack.push({
+        fileId: lastState.fileId,
+        sheetName: lastState.sheetName,
+        data: currentData,
+        desc: lastState.desc
+      });
+      ArminCore.State.setActiveSheetData(lastState.data);
+      ArminEditor.renderGrid();
+      ArminCore.Notify.show(`بازگشت: ${lastState.desc}`, 'info');
+      ArminApp.updateStats();
+    },
+
+    redo() {
+      if (this.redoStack.length === 0) return;
+      const nextState = this.redoStack.pop();
+      const currentData = JSON.parse(JSON.stringify(ArminCore.State.getActiveSheetData()));
+      this.undoStack.push({
+        fileId: nextState.fileId,
+        sheetName: nextState.sheetName,
+        data: currentData,
+        desc: nextState.desc
+      });
+      ArminCore.State.setActiveSheetData(nextState.data);
+      ArminEditor.renderGrid();
+      ArminCore.Notify.show(`انجام مجدد: ${nextState.desc}`, 'info');
+      ArminApp.updateStats();
+    }
+  },
+
+  Notify: {
+    show(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      const colors = {
+        success: 'bg-emerald-950 border-emerald-700 text-emerald-100',
+        error: 'bg-rose-950 border-rose-700 text-rose-100',
+        info: 'bg-slate-900 border-slate-700 text-slate-100'
+      };
+      toast.className = `px-3.5 py-2 rounded-xl border text-xs shadow-2xl flex items-center gap-2 pointer-events-auto fade-in ${colors[type] || colors.info}`;
+      toast.innerHTML = `
+        <span class="w-2 h-2 rounded-full ${type === 'success' ? 'bg-emerald-400' : type === 'error' ? 'bg-rose-400' : 'bg-blue-400'}"></span>
+        <span>${message}</span>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(8px)';
+        toast.style.transition = 'all 0.25s ease';
+        setTimeout(() => toast.remove(), 250);
+      }, 3000);
+    }
+  }
+};
+
+const ArminFileEngine = {
+  async processFiles(fileList) {
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      try {
+        const buffer = await file.arrayBuffer();
+        let workbook;
+        if (file.name.endsWith('.json')) {
+          const text = new TextDecoder().decode(buffer);
+          const jsonData = JSON.parse(text);
+          const sheet = XLSX.utils.json_to_sheet(Array.isArray(jsonData) ? jsonData : [jsonData]);
+          workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, sheet, 'Data');
+        } else {
+          workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+        }
+
+        const fileObj = {
+          id: 'f_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          name: file.name,
+          size: file.size,
+          workbook: workbook
+        };
+
+        ArminCore.State.files.push(fileObj);
+        ArminCore.State.activeFileId = fileObj.id;
+        ArminCore.State.activeSheetName = workbook.SheetNames[0];
+        ArminCore.Notify.show(`فایل "${file.name}" بارگذاری شد.`);
+      } catch (err) {
+        ArminCore.Notify.show(`خطا در باز کردن فایل: ${err.message}`, 'error');
+      }
+    }
+    ArminFileEngine.renderFileList();
+    ArminEditor.renderGrid();
+    ArminApp.updateStats();
+    ArminIntelligence.updateColumnsList();
+  },
+
+  renderFileList() {
+    const listEl = document.getElementById('workspace-file-list');
+    const files = ArminCore.State.files;
+    document.getElementById('file-count-badge').innerText = `${files.length} فایل`;
+
+    if (files.length === 0) {
+      listEl.innerHTML = `<div class="p-6 text-center text-slate-400 dark:text-slate-500 text-xs">هیچ فایلی باز نشده است.</div>`;
+      document.getElementById('status-active-file').innerText = 'بدون فایل';
+      return;
+    }
+
+    listEl.innerHTML = files.map(f => {
+      const isActive = f.id === ArminCore.State.activeFileId;
+      const sizeKB = (f.size / 1024).toFixed(1);
+      return `
+        <div onclick="ArminFileEngine.selectFile('${f.id}')" class="p-2.5 rounded-xl cursor-pointer transition flex items-center justify-between border ${isActive ? 'bg-brand-50 dark:bg-brand-950/40 border-brand-500/60 text-brand-900 dark:text-white font-semibold' : 'hover:bg-slate-100 dark:hover:bg-slate-800/80 border-transparent text-slate-600 dark:text-slate-400'}">
+          <div class="flex items-center gap-2 truncate">
+            <svg class="w-4 h-4 shrink-0 ${isActive ? 'text-brand-500' : 'text-slate-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <div class="truncate">
+              <div class="text-xs truncate">${f.name}</div>
+              <div class="text-[10px] text-slate-400 font-mono">${sizeKB} KB • ${f.workbook.SheetNames.length} شیت</div>
+            </div>
+          </div>
+          <button onclick="event.stopPropagation(); ArminFileEngine.closeFile('${f.id}')" class="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-rose-500">✕</button>
+        </div>
+      `;
+    }).join('');
+
+    const active = ArminCore.State.getActiveFile();
+    document.getElementById('status-active-file').innerText = active ? `${active.name} (${ArminCore.State.activeSheetName})` : 'بدون فایل';
+  },
+
+  selectFile(id) {
+    ArminCore.State.activeFileId = id;
+    const f = ArminCore.State.getActiveFile();
+    if (f) ArminCore.State.activeSheetName = f.workbook.SheetNames[0];
+    ArminFileEngine.renderFileList();
+    ArminEditor.renderGrid();
+    ArminIntelligence.updateColumnsList();
+    ArminApp.updateStats();
+    ArminApp.toggleSidebar(false);
+  },
+
+  closeFile(id) {
+    ArminCore.State.files = ArminCore.State.files.filter(f => f.id !== id);
+    if (ArminCore.State.activeFileId === id) {
+      ArminCore.State.activeFileId = ArminCore.State.files.length > 0 ? ArminCore.State.files[0].id : null;
+      if (ArminCore.State.activeFileId) {
+        ArminCore.State.activeSheetName = ArminCore.State.getActiveFile().workbook.SheetNames[0];
+      }
+    }
+    ArminFileEngine.renderFileList();
+    ArminEditor.renderGrid();
+    ArminApp.updateStats();
+  }
+};
+
+const ArminEditor = {
+  renderGrid() {
+    const data = ArminCore.State.getActiveSheetData();
+    const thead = document.getElementById('grid-thead');
+    const tbody = document.getElementById('grid-tbody');
+    const sheetDim = document.getElementById('active-sheet-dimensions');
+    const sheetTabs = document.getElementById('sheet-tabs-list');
+
+    if (!data || data.length === 0) {
+      thead.innerHTML = '';
+      tbody.innerHTML = `<tr><td class="p-10 text-center text-slate-400 dark:text-slate-500 text-xs">هیچ داده‌ای در این شیت وجود ندارد. دکمه «+ سطر» را بزنید.</td></tr>`;
+      sheetDim.innerText = '0 سطر × 0 ستون';
+      sheetTabs.innerHTML = '';
+      return;
+    }
+
+    const colCount = Math.max(...data.map(r => r.length), 1);
+    const rowCount = data.length;
+    sheetDim.innerText = `${rowCount} سطر × ${colCount} ستون`;
+
+    // Render Sheet Tabs
+    const file = ArminCore.State.getActiveFile();
+    if (file && file.workbook) {
+      sheetTabs.innerHTML = file.workbook.SheetNames.map(name => {
+        const isActive = name === ArminCore.State.activeSheetName;
+        return `
+          <button onclick="ArminEditor.switchSheet('${name}')" class="px-3 py-1 text-xs rounded-t-md font-medium border-t-2 transition ${isActive ? 'bg-white dark:bg-slate-950 border-brand-500 text-brand-600 dark:text-white font-bold' : 'border-transparent hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500'}">
+            ${name}
+          </button>
+        `;
+      }).join('');
+    }
+
+    // Render Headers (Row 0 as header)
+    const headers = data[0] || [];
+    let headerHTML = `<tr class="border-b border-slate-200 dark:border-slate-800">
+      <th class="w-10 bg-slate-100 dark:bg-surface-900 border-l border-slate-200 dark:border-slate-800 p-2 text-center text-[10px] text-slate-400 font-mono select-none">#</th>`;
+    
+    for (let c = 0; c < colCount; c++) {
+      const colTitle = headers[c] !== undefined && headers[c] !== '' ? headers[c] : String.fromCharCode(65 + (c % 26));
+      headerHTML += `
+        <th class="border-l border-slate-200 dark:border-slate-800 p-2 text-right text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-surface-900 select-none min-w-[90px]">
+          <div class="flex items-center justify-between gap-2">
+            <span class="truncate">${colTitle}</span>
+            <button onclick="ArminEditor.deleteColumn(${c})" class="text-slate-400 hover:text-rose-500 text-[10px]" title="حذف ستون">✕</button>
+          </div>
+        </th>
+      `;
+    }
+    headerHTML += `</tr>`;
+    thead.innerHTML = headerHTML;
+
+    // Render Rows (Virtual smooth render up to 200 rows)
+    const displayRows = data.slice(1, 201);
+    let bodyHTML = '';
+
+    displayRows.forEach((row, rIdx) => {
+      const actualRowIndex = rIdx + 1;
+      bodyHTML += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
+        <td class="bg-slate-100/70 dark:bg-surface-900/60 border-l border-slate-200 dark:border-slate-800 p-1.5 text-center text-[10px] font-mono text-slate-400 select-none">${actualRowIndex}</td>`;
+      
+      for (let c = 0; c < colCount; c++) {
+        let cellVal = row[c] !== undefined ? row[c] : '';
+        const styleKey = `${ArminCore.State.activeSheetName}_${actualRowIndex}_${c}`;
+        const cellStyle = ArminCore.State.cellStyles[styleKey] || {};
+
+        let inlineCss = '';
+        if (cellStyle.bold) inlineCss += 'font-weight: bold; ';
+        if (cellStyle.italic) inlineCss += 'font-style: italic; ';
+        if (cellStyle.align) inlineCss += `text-align: ${cellStyle.align}; `;
+
+        // Format commas if requested
+        if (cellStyle.comma && !isNaN(parseFloat(cellVal))) {
+          cellVal = parseFloat(cellVal).toLocaleString();
+        }
+
+        bodyHTML += `
+          <td contenteditable="true"
+              style="${inlineCss}"
+              class="grid-cell border-l border-slate-200 dark:border-slate-800/80 p-2 text-xs text-slate-800 dark:text-slate-200 whitespace-nowrap overflow-hidden text-ellipsis max-w-[220px]"
+              data-row="${actualRowIndex}" data-col="${c}"
+              onfocus="ArminEditor.onCellFocus(${actualRowIndex}, ${c}, this.innerText)"
+              onblur="ArminEditor.onCellBlur(${actualRowIndex}, ${c}, this.innerText)">
+            ${cellVal}
+          </td>
+        `;
+      }
+      bodyHTML += `</tr>`;
+    });
+
+    tbody.innerHTML = bodyHTML;
+  },
+
+  onCellFocus(row, col, value) {
+    ArminCore.State.selectedCell = { row, col };
+    const colLetter = String.fromCharCode(65 + (col % 26)) + (row);
+    document.getElementById('selected-cell-coord').innerText = colLetter;
+    document.getElementById('formula-bar-input').value = value;
+  },
+
+  onCellBlur(row, col, newValue) {
+    const data = ArminCore.State.getActiveSheetData();
+    if (data[row] && String(data[row][col]) !== String(newValue)) {
+      ArminCore.History.pushSnapshot('ویرایش سلول');
+      data[row][col] = newValue;
+      ArminCore.State.setActiveSheetData(data);
+    }
+  },
+
+  onFormulaInput(val) {
+    const { row, col } = ArminCore.State.selectedCell;
+    const cellEl = document.querySelector(`.grid-cell[data-row="${row}"][data-col="${col}"]`);
+    if (cellEl) cellEl.innerText = val;
+  },
+
+  commitFormulaInput() {
+    const { row, col } = ArminCore.State.selectedCell;
+    const inputVal = document.getElementById('formula-bar-input').value;
+    const data = ArminCore.State.getActiveSheetData();
+    if (!data[row]) return;
+
+    ArminCore.History.pushSnapshot('ورود فرمول');
+    // Live Formula evaluation (e.g. =SUM(A1:A10), =AVG(B1:B5))
+    if (inputVal.startsWith('=')) {
+      const evaluated = this.evaluateFormula(inputVal.substring(1), data);
+      data[row][col] = evaluated;
+    } else {
+      data[row][col] = inputVal;
+    }
+    ArminCore.State.setActiveSheetData(data);
+    this.renderGrid();
+  },
+
+  evaluateFormula(expr, data) {
+    try {
+      const cleanExpr = expr.trim().toUpperCase();
+      // Match SUM(A1:A5)
+      const match = cleanExpr.match(/(SUM|AVERAGE|AVG|MIN|MAX|COUNT)\(([A-Z]+)(\d+):([A-Z]+)(\d+)\)/);
+      if (match) {
+        const fn = match[1];
+        const startCol = match[2].charCodeAt(0) - 65;
+        const startRow = parseInt(match[3]);
+        const endRow = parseInt(match[5]);
+
+        const values = [];
+        for (let r = startRow; r <= endRow; r++) {
+          if (data[r] && data[r][startCol] !== undefined) {
+            const num = parseFloat(String(data[r][startCol]).replace(/,/g, ''));
+            if (!isNaN(num)) values.push(num);
+          }
+        }
+
+        if (values.length === 0) return 0;
+        if (fn === 'SUM') return values.reduce((a, b) => a + b, 0);
+        if (fn === 'AVERAGE' || fn === 'AVG') return (values.reduce((a, b) => a + b, 0) / values.length).toFixed(2);
+        if (fn === 'MIN') return Math.min(...values);
+        if (fn === 'MAX') return Math.max(...values);
+        if (fn === 'COUNT') return values.length;
+      }
+      return eval(cleanExpr); // basic math eval
+    } catch {
+      return '#ERROR!';
+    }
+  },
+
+  applyFormat(type) {
+    const { row, col } = ArminCore.State.selectedCell;
+    const key = `${ArminCore.State.activeSheetName}_${row}_${col}`;
+    if (!ArminCore.State.cellStyles[key]) ArminCore.State.cellStyles[key] = {};
+    const s = ArminCore.State.cellStyles[key];
+
+    if (type === 'bold') s.bold = !s.bold;
+    if (type === 'italic') s.italic = !s.italic;
+    if (type === 'align-right') s.align = 'right';
+    if (type === 'align-center') s.align = 'center';
+    if (type === 'align-left') s.align = 'left';
+
+    this.renderGrid();
+  },
+
+  formatNumbers(mode) {
+    const { row, col } = ArminCore.State.selectedCell;
+    const key = `${ArminCore.State.activeSheetName}_${row}_${col}`;
+    if (!ArminCore.State.cellStyles[key]) ArminCore.State.cellStyles[key] = {};
+    const s = ArminCore.State.cellStyles[key];
+
+    if (mode === 'comma') s.comma = !s.comma;
+    if (mode === 'percent') {
+      const data = ArminCore.State.getActiveSheetData();
+      if (data[row] && !isNaN(parseFloat(data[row][col]))) {
+        data[row][col] = (parseFloat(data[row][col]) * 100).toFixed(0) + '%';
+        ArminCore.State.setActiveSheetData(data);
+      }
+    }
+    this.renderGrid();
+  },
+
+  addRow() {
+    ArminCore.History.pushSnapshot('افزودن سطر');
+    const data = ArminCore.State.getActiveSheetData();
+    const colCount = data[0] ? data[0].length : 4;
+    data.push(new Array(colCount).fill(''));
+    ArminCore.State.setActiveSheetData(data);
+    this.renderGrid();
+    ArminCore.Notify.show('سطر جدید اضافه شد.');
+  },
+
+  addColumn() {
+    ArminCore.History.pushSnapshot('افزودن ستون');
+    const data = ArminCore.State.getActiveSheetData();
+    if (!data.length) {
+      data.push(['ستون_1']);
+    } else {
+      data.forEach((row, i) => row.push(i === 0 ? `ستون_${row.length + 1}` : ''));
+    }
+    ArminCore.State.setActiveSheetData(data);
+    this.renderGrid();
+    ArminCore.Notify.show('ستون جدید اضافه شد.');
+  },
+
+  deleteColumn(colIndex) {
+    ArminCore.History.pushSnapshot('حذف ستون');
+    const data = ArminCore.State.getActiveSheetData();
+    data.forEach(row => row.splice(colIndex, 1));
+    ArminCore.State.setActiveSheetData(data);
+    this.renderGrid();
+  },
+
+  switchSheet(sheetName) {
+    ArminCore.State.activeSheetName = sheetName;
+    this.renderGrid();
+    ArminIntelligence.updateColumnsList();
+  },
+
+  addSheet() {
+    const file = ArminCore.State.getActiveFile();
+    if (!file) return;
+    const name = `شیت_${file.workbook.SheetNames.length + 1}`;
+    const newSheet = XLSX.utils.aoa_to_sheet([['ردیف', 'عنوان', 'مبلغ']]);
+    XLSX.utils.book_append_sheet(file.workbook, newSheet, name);
+    ArminCore.State.activeSheetName = name;
+    this.renderGrid();
+    ArminCore.Notify.show(`شیت "${name}" ایجاد شد.`);
+  },
+
+  executeFindReplace() {
+    const findText = document.getElementById('find-input').value;
+    const replaceText = document.getElementById('replace-input').value;
+    if (!findText) return;
+
+    ArminCore.History.pushSnapshot('جستجو و جایگزینی');
+    const data = ArminCore.State.getActiveSheetData();
+    let count = 0;
+
+    data.forEach(row => {
+      row.forEach((cell, idx) => {
+        if (typeof cell === 'string' && cell.includes(findText)) {
+          row[idx] = cell.split(findText).join(replaceText);
+          count++;
+        }
+      });
+    });
+
+    ArminCore.State.setActiveSheetData(data);
+    this.renderGrid();
+    ArminApp.closeFindReplaceModal();
+    ArminCore.Notify.show(`${count} مورد جایگزین شد.`);
+  }
+};
+
+const ArminIranToolkit = {
+  // Convert Persian and Arabic digits to standard English
+  convertPersianDigits() {
+    const file = ArminCore.State.getActiveFile();
+    if (!file) return;
+    ArminCore.History.pushSnapshot('تبدیل ارقام فارسی');
+    const data = ArminCore.State.getActiveSheetData();
+
+    const pDigits = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+    const aDigits = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+
+    data.forEach((row, rIdx) => {
+      if (rIdx === 0) return;
+      row.forEach((cell, cIdx) => {
+        if (typeof cell === 'string') {
+          let str = cell;
+          for (let i = 0; i < 10; i++) {
+            str = str.replaceAll(pDigits[i], String(i)).replaceAll(aDigits[i], String(i));
+          }
+          row[cIdx] = str;
+        }
+      });
+    });
+
+    ArminCore.State.setActiveSheetData(data);
+    ArminEditor.renderGrid();
+    ArminCore.Notify.show('تمام اعداد فارسی و عربی به انگلیسی تبدیل شدند.');
+  },
+
+  // Pad National ID with leading zeros if less than 10 digits
+  fixNationalIDs() {
+    const file = ArminCore.State.getActiveFile();
+    if (!file) return;
+    ArminCore.History.pushSnapshot('اصلاح کد ملی');
+    const data = ArminCore.State.getActiveSheetData();
+    let fixed = 0;
+
+    data.forEach((row, rIdx) => {
+      if (rIdx === 0) return;
+      row.forEach((cell, cIdx) => {
+        const clean = String(cell).trim();
+        if (/^\d{8,9}$/.test(clean)) {
+          row[cIdx] = clean.padStart(10, '0');
+          fixed++;
+        }
+      });
+    });
+
+    ArminCore.State.setActiveSheetData(data);
+    ArminEditor.renderGrid();
+    ArminCore.Notify.show(`${fixed} کد ملی با صفر اول اصلاح شد.`);
+  },
+
+  // Standardize mobile numbers to 09xxxxxxxxx
+  standardizePhones() {
+    const file = ArminCore.State.getActiveFile();
+    if (!file) return;
+    ArminCore.History.pushSnapshot('استانداردسازی شماره همراه');
+    const data = ArminCore.State.getActiveSheetData();
+    let count = 0;
+
+    data.forEach((row, rIdx) => {
+      if (rIdx === 0) return;
+      row.forEach((cell, cIdx) => {
+        let str = String(cell).replace(/[\s\-\+]/g, '');
+        if (str.startsWith('989')) str = '0' + str.substring(2);
+        if (str.startsWith('00989')) str = '0' + str.substring(4);
+        if (str.length === 10 && str.startsWith('9')) str = '0' + str;
+
+        if (/^09\d{9}$/.test(str)) {
+          row[cIdx] = str;
+          count++;
+        }
+      });
+    });
+
+    ArminCore.State.setActiveSheetData(data);
+    ArminEditor.renderGrid();
+    ArminCore.Notify.show(`${count} شماره موبایل استاندارد شد.`);
+  }
+};
+
+const ArminOperations = {
+  runQuickOp(type) {
+    const file = ArminCore.State.getActiveFile();
+    if (!file) return;
+    ArminCore.History.pushSnapshot(type);
+    let data = ArminCore.State.getActiveSheetData();
+
+    if (type === 'removeEmptyRows') {
+      const header = data[0];
+      const rows = data.slice(1).filter(r => r.some(c => c !== null && String(c).trim() !== ''));
+      data = [header, ...rows];
+    } else if (type === 'removeDuplicates') {
+      const header = data[0];
+      const seen = new Set();
+      const unique = [];
+      for (let i = 1; i < data.length; i++) {
+        const key = JSON.stringify(data[i]);
+        if (!seen.has(key)) {
+          seen.add(key);
+          unique.push(data[i]);
+        }
+      }
+      data = [header, ...unique];
+    } else if (type === 'trimText') {
+      data = data.map(r => r.map(c => typeof c === 'string' ? c.trim() : c));
+    }
+
+    ArminCore.State.setActiveSheetData(data);
+    ArminEditor.renderGrid();
+    ArminCore.Notify.show('عملیات با موفقیت انجام شد.');
+  }
+};
+
+const ArminIntelligence = {
+  chartInstance: null,
+
+  updateColumnsList() {
+    const data = ArminCore.State.getActiveSheetData();
+    const select = document.getElementById('analyzer-col-select');
+    if (!select || !data || !data[0]) return;
+    select.innerHTML = data[0].map((h, idx) => `<option value="${idx}">${h || 'ستون ' + (idx + 1)}</option>`).join('');
+    this.updateStats(0);
+  },
+
+  updateStats(colIndex) {
+    const data = ArminCore.State.getActiveSheetData();
+    if (!data || data.length <= 1) return;
+
+    const nums = [];
+    const labels = [];
+    for (let i = 1; i < data.length; i++) {
+      const v = parseFloat(String(data[i][colIndex]).replace(/,/g, ''));
+      if (!isNaN(v)) {
+        nums.push(v);
+        labels.push(`سطر ${i}`);
+      }
+    }
+
+    if (nums.length === 0) {
+      document.getElementById('stat-sum').innerText = '-';
+      document.getElementById('stat-avg').innerText = '-';
+      document.getElementById('stat-min').innerText = '-';
+      document.getElementById('stat-max').innerText = '-';
+      return;
+    }
+
+    const sum = nums.reduce((a, b) => a + b, 0);
+    const avg = sum / nums.length;
+    const min = Math.min(...nums);
+    const max = Math.max(...nums);
+
+    document.getElementById('stat-sum').innerText = sum.toLocaleString();
+    document.getElementById('stat-avg').innerText = avg.toFixed(1);
+    document.getElementById('stat-min').innerText = min.toLocaleString();
+    document.getElementById('stat-max').innerText = max.toLocaleString();
+
+    // Chart.js render
+    const canvas = document.getElementById('analytics-chart-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (this.chartInstance) this.chartInstance.destroy();
+
+    this.chartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels.slice(0, 25),
+        datasets: [{
+          label: data[0][colIndex] || 'مقادیر',
+          data: nums.slice(0, 25),
+          backgroundColor: '#10b981',
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { font: { family: 'Vazirmatn' } } },
+          y: { ticks: { font: { family: 'Vazirmatn' } } }
+        }
+      }
+    });
+  }
+};
+
+const ArminApp = {
+  init() {
+    this.initTheme();
+    this.setupShortcuts();
+    this.loadDemoData(); // Load clean starter data
+  },
+
+  initTheme() {
+    const savedTheme = localStorage.getItem('armin_theme') || 'dark';
+    if (savedTheme === 'light') {
+      document.documentElement.classList.remove('dark');
+      document.getElementById('theme-icon-moon').classList.add('hidden');
+      document.getElementById('theme-icon-sun').classList.remove('hidden');
+    } else {
+      document.documentElement.classList.add('dark');
+      document.getElementById('theme-icon-moon').classList.remove('hidden');
+      document.getElementById('theme-icon-sun').classList.add('hidden');
+    }
+  },
+
+  toggleTheme() {
+    const isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('armin_theme', isDark ? 'dark' : 'light');
+    document.getElementById('theme-icon-moon').classList.toggle('hidden', !isDark);
+    document.getElementById('theme-icon-sun').classList.toggle('hidden', isDark);
+    ArminCore.Notify.show(`تم ${isDark ? 'تاریک' : 'روشن'} فعال شد.`, 'info');
+  },
+
+  toggleSidebar(show) {
+    const sidebar = document.getElementById('app-sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    if (show) {
+      sidebar.classList.remove('translate-x-full');
+      backdrop.classList.remove('hidden');
+    } else {
+      sidebar.classList.add('translate-x-full');
+      backdrop.classList.add('hidden');
+    }
+  },
+
+  switchView(viewName) {
+    const views = ['editor', 'dashboard', 'tools', 'inspector'];
+    views.forEach(v => {
+      const el = document.getElementById(`view-${v}`);
+      const btn = document.getElementById(`tab-btn-${v}`);
+      if (v === viewName) {
+        el.classList.remove('hidden');
+        btn.classList.add('bg-brand-600', 'text-white');
+        btn.classList.remove('text-slate-600', 'dark:text-slate-400');
+      } else {
+        el.classList.add('hidden');
+        btn.classList.remove('bg-brand-600', 'text-white');
+        btn.classList.add('text-slate-600', 'dark:text-slate-400');
+      }
+    });
+    if (viewName === 'editor') ArminEditor.renderGrid();
+    if (viewName === 'inspector') ArminIntelligence.updateColumnsList();
+  },
+
+  handleFileInput(files) {
+    if (files && files.length) ArminFileEngine.processFiles(files);
+  },
+
+  loadDemoData() {
+    const sampleHeaders = ['شناسه', 'نام و نام خانوادگی', 'کد ملی', 'شماره همراه', 'حقوق پایه (تومان)', 'وضعیت'];
+    const sampleRows = [
+      ['101', 'علی رضایی', '0012345678', '09121112233', 18500000, 'فعال'],
+      ['102', 'سارا احمدی', '23456789', '989354445566', 22000000, 'فعال'],
+      ['103', 'محمد موسوی', '0034567890', '09198889900', 14200000, 'مرخصی'],
+      ['104', 'زهرا کریمی', '45678901', '09301234567', 19800000, 'فعال']
+    ];
+
+    const book = XLSX.utils.book_new();
+    const sheet = XLSX.utils.aoa_to_sheet([sampleHeaders, ...sampleRows]);
+    XLSX.utils.book_append_sheet(book, sheet, 'پرسنل');
+
+    const demoFile = {
+      id: 'f_demo',
+      name: 'لیست_پرسنل.xlsx',
+      size: 32000,
+      workbook: book
+    };
+
+    ArminCore.State.files = [demoFile];
+    ArminCore.State.activeFileId = demoFile.id;
+    ArminCore.State.activeSheetName = 'پرسنل';
+
+    ArminFileEngine.renderFileList();
+    ArminEditor.renderGrid();
+    this.updateStats();
+  },
+
+  updateStats() {
+    const files = ArminCore.State.files;
+    document.getElementById('stat-files').innerText = files.length;
+    const activeData = ArminCore.State.getActiveSheetData();
+    document.getElementById('stat-rows').innerText = activeData.length > 0 ? (activeData.length - 1).toLocaleString() : '0';
+    document.getElementById('stat-cols').innerText = activeData[0] ? activeData[0].length : '0';
+    document.getElementById('stat-ops').innerText = ArminCore.History.undoStack.length;
+  },
+
+  toggleExportMenu() {
+    document.getElementById('export-menu').classList.toggle('hidden');
+  },
+
+  exportActive(format) {
+    const file = ArminCore.State.getActiveFile();
+    if (!file) return;
+    const filename = `${file.name.replace(/\.[^/.]+$/, "")}_Export.${format}`;
+
+    if (format === 'xlsx') {
+      XLSX.writeFile(file.workbook, filename);
+    } else if (format === 'csv') {
+      const sheet = file.workbook.Sheets[ArminCore.State.activeSheetName];
+      const csv = XLSX.utils.sheet_to_csv(sheet);
+      const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csv], { type: 'text/csv;charset=utf-8;' });
+      this.downloadBlob(blob, filename);
+    } else if (format === 'json') {
+      const sheet = file.workbook.Sheets[ArminCore.State.activeSheetName];
+      const json = JSON.stringify(XLSX.utils.sheet_to_json(sheet), null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      this.downloadBlob(blob, filename);
+    }
+    document.getElementById('export-menu').classList.add('hidden');
+    ArminCore.Notify.show(`فایل ${format.toUpperCase()} ذخیره شد.`);
+  },
+
+  downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  openFindReplaceModal() {
+    document.getElementById('find-replace-modal').classList.remove('hidden');
+    document.getElementById('find-input').focus();
+  },
+
+  closeFindReplaceModal() {
+    document.getElementById('find-replace-modal').classList.add('hidden');
+  },
+
+  setupShortcuts() {
+    window.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        ArminCore.History.undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
+        e.preventDefault();
+        ArminCore.History.redo();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        ArminApp.openFindReplaceModal();
+      }
+    });
+  }
+};
+
+window.addEventListener('DOMContentLoaded', () => {
+  ArminApp.init();
+});
+</script>
+</body>
+</html>
